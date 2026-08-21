@@ -1,0 +1,2745 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jornada da Vida | MyDose</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=Bebas+Neue&family=Cutive&family=Great+Vibes&family=JetBrains+Mono:wght@400;600&family=Playfair+Display:wght@600&family=Shrikhand&family=Syne:wght@600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          'bebas': ['Bebas Neue', 'sans-serif'],
+          'amatic': ['Amatic SC', 'cursive'],
+          'vibes': ['Great Vibes', 'cursive'],
+          'cutive': ['Cutive', 'serif'],
+          'mono-rpg': ['JetBrains Mono', 'monospace'],
+          'shrikhand': ['Shrikhand', 'cursive'],
+        },
+        colors: {
+          /* Paleta oficial de identidade Psicothica */
+          'psi-void': '#0f142a',
+          'psi-frost': '#e1eefc',
+          'psi-indigo': '#130169',
+          'psi-orchid': '#ce57df',
+          'psi-magenta': '#b104dc',
+          'psi-cyan': '#02bbff',
+          'psi-sky': '#82e5ff',
+          'psi-lilac': '#ec9eff',
+          /* aliases mantidos por compatibilidade */
+          'void': '#0f142a',
+          'petrol': '#003153',
+          'neon-magenta': '#ce57df',
+          'neon-cyan': '#02bbff',
+        }
+      }
+    }
+  }
+</script>
+<style>
+  @media print {
+    #bg-canvas, .no-print, nav, header .mode-nav { display: none !important; }
+    body { background: white !important; }
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    /* Bolha de luz violeta (eco do logo) sobre a base grafite-noturno → azul-marinho da identidade Psicothica */
+    background:
+      radial-gradient(ellipse 1100px 550px at 50% -8%, rgba(151,13,237,0.28), transparent 62%),
+      radial-gradient(ellipse at top, #130169 0%, #0f142a 48%, #04223d 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  #bg-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .app-layer { position: relative; z-index: 10; }
+  .glass-card {
+    background: rgba(15, 20, 42, 0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(225,238,252,0.12);
+  }
+  .glass-card-strong {
+    background: rgba(15, 1, 60, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(225,238,252,0.15);
+  }
+  .neon-border-magenta { border: 1px solid rgba(206, 87, 223, 0.45); box-shadow: 0 0 20px rgba(206, 87, 223, 0.15), inset 0 0 20px rgba(206, 87, 223, 0.03); }
+  .neon-border-cyan { border: 1px solid rgba(2, 187, 255, 0.45); box-shadow: 0 0 20px rgba(2, 187, 255, 0.15), inset 0 0 20px rgba(2, 187, 255, 0.03); }
+  .text-glow-magenta { text-shadow: 0 0 12px rgba(206, 87, 223, 0.6), 0 0 30px rgba(177, 4, 220, 0.3); }
+  .text-glow-cyan { text-shadow: 0 0 12px rgba(2, 187, 255, 0.6), 0 0 30px rgba(130, 229, 255, 0.3); }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: rgba(225,238,252,0.03); }
+  ::-webkit-scrollbar-thumb { background: rgba(2, 187, 255, 0.25); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(2, 187, 255, 0.4); }
+
+  .tab-btn { transition: all 0.3s ease; position: relative; }
+  .tab-btn.active {
+    background: linear-gradient(135deg, rgba(206,87,223,0.2), rgba(2,187,255,0.14));
+    border-color: rgba(2,187,255,0.5);
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .mode-card { transition: transform 0.25s ease, box-shadow 0.25s ease; cursor: pointer; }
+  .mode-card:hover { transform: translateY(-4px); }
+  .mode-card.selected { transform: translateY(-6px) scale(1.02); }
+
+  input[type=range] { -webkit-appearance: none; height: 6px; border-radius: 999px; background: rgba(225,238,252,0.15); }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+    background: radial-gradient(circle, #02bbff, #ce57df); cursor: pointer;
+    box-shadow: 0 0 10px rgba(2,187,255,0.7);
+  }
+
+  /* Selects: o menu nativo do navegador ignora o glassmorphism e abre em branco por padrão —
+     fixamos fundo azul profundo + texto claro para a caixa e para cada opção da lista. */
+  select {
+    color: #e1eefc;
+    background-color: #0f142a;
+  }
+  select option {
+    background-color: #0f142a;
+    color: #e1eefc;
+  }
+  select option:checked,
+  select option:hover,
+  select option:focus {
+    background-color: #130169;
+    color: #e1eefc;
+  }
+
+  .stat-bar-track { background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; height: 14px; }
+  .stat-bar-fill { height: 100%; transition: width 0.6s ease; border-radius: 999px; }
+
+  .quest-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+  .quest-card:hover { transform: translateY(-2px); }
+  .quest-card.dragging { opacity: 0.4; }
+  .drop-zone.drag-over { background: rgba(2,187,255,0.08); border-color: rgba(2,187,255,0.6); }
+
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(5,5,20,0.75); backdrop-filter: blur(4px);
+    z-index: 100; display: none; align-items: center; justify-content: center; padding: 1rem;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-box { animation: modalIn 0.3s ease; }
+  @keyframes modalIn { from { opacity:0; transform: scale(0.95) translateY(10px);} to {opacity:1; transform: scale(1) translateY(0);} }
+
+  .focus-visible-ring:focus-visible { outline: 2px solid #02bbff; outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    opacity: 0; transition: all 0.35s ease; z-index: 200; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  details summary { list-style: none; }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::before {
+    content: '▸'; display: inline-block; margin-right: 8px; color: #02bbff;
+    transition: transform 0.2s ease;
+  }
+  details[open] summary::before { transform: rotate(90deg); }
+</style>
+</head>
+<body class="text-slate-100 font-['Syne']">
+
+<canvas id="bg-canvas"></canvas>
+
+<div class="app-layer" id="app-root">
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="relative max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-4">
+
+    <div class="flex items-center justify-between flex-wrap gap-4">
+      <div class="flex items-center gap-3">
+        <!-- Logo oficial da identidade (cérebro de vidro com nós neurais) -->
+        <img id="brand-logo-header" src="" alt="" aria-hidden="true" class="w-11 h-11 shrink-0 rounded-xl object-cover neon-border-magenta">
+        <div>
+          <h1 class="font-bebas text-3xl sm:text-4xl tracking-wide text-glow-magenta leading-none">JORNADA DA VIDA</h1>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <button id="reopen-welcome-btn" type="button" class="font-mono-rpg text-[11px] text-slate-400 hover:text-cyan-300 transition-colors focus-visible-ring underline decoration-dotted underline-offset-4">Rever boas-vindas</button>
+        <div id="save-indicator" class="font-mono-rpg text-[11px] text-slate-400 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
+          Dados salvos localmente neste dispositivo
+        </div>
+      </div>
+    </div>
+
+    <!-- Navegação entre os 4 módulos -->
+    <nav class="mode-nav mt-6 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Navegação de módulos">
+      <button data-module="m1" class="module-tab-btn tab-btn active glass-card neon-border-cyan rounded-xl px-4 py-2.5 whitespace-nowrap font-semibold text-sm focus-visible-ring" role="tab" aria-selected="true">🧭 #1 Hub Central</button>
+      <button data-module="m2" class="module-tab-btn tab-btn glass-card border border-white/10 rounded-xl px-4 py-2.5 whitespace-nowrap font-semibold text-sm text-slate-300 focus-visible-ring" role="tab" aria-selected="false">🧝 #2 Ficha de Personagem</button>
+      <button data-module="m3" class="module-tab-btn tab-btn glass-card border border-white/10 rounded-xl px-4 py-2.5 whitespace-nowrap font-semibold text-sm text-slate-300 focus-visible-ring" role="tab" aria-selected="false">🔋 #3 Stamina &amp; Mana</button>
+      <button data-module="m4" class="module-tab-btn tab-btn glass-card border border-white/10 rounded-xl px-4 py-2.5 whitespace-nowrap font-semibold text-sm text-slate-300 focus-visible-ring" role="tab" aria-selected="false">📜 #4 Mural de Missões</button>
+      <button data-module="m5" class="module-tab-btn tab-btn glass-card border border-white/10 rounded-xl px-4 py-2.5 whitespace-nowrap font-semibold text-sm text-slate-300 focus-visible-ring" role="tab" aria-selected="false">🗺️ Mapa da Jornada</button>
+    </nav>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 pb-16">
+
+    <!-- ============================================================ -->
+    <!-- MÓDULO 1: HUB CENTRAL E MODOS DE JOGO -->
+    <!-- ============================================================ -->
+    <section id="module-m1" class="module-panel active">
+
+      <div class="glass-card rounded-2xl p-5 sm:p-7 mb-6 neon-border-magenta">
+        <p class="font-cutive text-sm sm:text-base text-slate-200 leading-relaxed max-w-3xl">
+          Bem-vindo(a) ao seu <span class="text-[#02bbff] font-semibold">Hub Central</span>. Aqui a jornada terapêutica <span class="font-shrikhand text-[#ec9eff] text-base sm:text-lg">vira jogo</span>: escolha o Modo que combina com o momento que você está vivendo, entenda suas exigências e assine o Contrato do Jogador — seu compromisso pessoal com esta jornada.
+        </p>
+      </div>
+
+      <!-- Seletor de Modos -->
+      <h2 class="font-bebas text-2xl tracking-wide text-[#82e5ff] mb-4">Escolha seu Modo de Jogo</h2>
+      <div id="mode-selector" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <!-- Cards de modo injetados via JS -->
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <!-- Radar de exigências -->
+        <div class="lg:col-span-2 glass-card rounded-2xl p-5 sm:p-6 neon-border-cyan">
+          <h3 class="font-bebas text-xl tracking-wide text-magenta-200 mb-1" style="color:#ec9eff">Radar de Exigências</h3>
+          <p class="font-cutive text-xs text-slate-400 mb-4">Cada modo pede um perfil diferente de energia. Veja o que <span id="radar-mode-name" class="text-[#02bbff]">este modo</span> exige de você.</p>
+          <div class="relative" style="height: 300px;">
+            <canvas id="mode-radar-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- Descrição detalhada do modo + contrato -->
+        <div class="lg:col-span-3 glass-card rounded-2xl p-5 sm:p-6 neon-border-magenta flex flex-col">
+          <div id="mode-detail">
+            <!-- Detalhe do modo selecionado injetado via JS -->
+          </div>
+
+          <div class="mt-6 pt-6 border-t border-white/10">
+            <h3 class="font-bebas text-xl tracking-wide text-[#82e5ff] mb-2">📜 Contrato do Jogador</h3>
+            <p class="font-cutive text-xs text-slate-400 mb-4">Gere seu contrato simbólico: um compromisso pessoal com o modo escolhido, assinado por você.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              <div>
+                <label for="player-name" class="block font-mono-rpg text-[11px] text-slate-400 mb-1 uppercase tracking-wider">Nome do Jogador</label>
+                <input id="player-name" type="text" placeholder="Como você quer ser chamado(a)?" class="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm focus-visible-ring focus:border-cyan-400/60 outline-none placeholder:text-slate-500">
+              </div>
+              <div>
+                <label for="player-vow" class="block font-mono-rpg text-[11px] text-slate-400 mb-1 uppercase tracking-wider">Meu compromisso principal</label>
+                <input id="player-vow" type="text" placeholder="Ex: Vou me tratar com mais paciência" class="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm focus-visible-ring focus:border-cyan-400/60 outline-none placeholder:text-slate-500">
+              </div>
+            </div>
+            <button id="generate-contract-btn" class="w-full sm:w-auto px-5 py-2.5 rounded-lg font-bebas text-lg tracking-wide bg-gradient-to-r from-[#d738d2]/85 to-[#68a1ed]/85 hover:from-[#d738d2] hover:to-[#68a1ed] transition-all focus-visible-ring">
+              GERAR CONTRATO DO JOGADOR
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contrato Gerado (preview + export) -->
+      <div id="contract-result-wrap" class="hidden mt-6">
+        <div id="contract-card" class="glass-card-strong rounded-2xl p-6 sm:p-10 neon-border-cyan relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-40 h-40 opacity-10 text-8xl flex items-center justify-center select-none" aria-hidden="true">🎲</div>
+          <p class="font-mono-rpg text-[11px] text-[#02bbff] uppercase tracking-[0.3em] mb-1">Contrato do Jogador</p>
+          <h3 class="font-bebas text-3xl sm:text-4xl text-glow-magenta mb-4" id="contract-mode-title">—</h3>
+          <p class="font-cutive text-base text-slate-200 leading-relaxed mb-4" id="contract-body-text">—</p>
+          <div class="flex items-center justify-between flex-wrap gap-3 mt-8 pt-4 border-t border-white/10">
+            <div>
+              <p class="font-mono-rpg text-[10px] text-slate-400 uppercase tracking-wider">Assinado por</p>
+              <p class="font-vibes text-3xl text-[#82e5ff]" id="contract-signature">—</p>
+            </div>
+            <p class="font-mono-rpg text-[11px] text-slate-400" id="contract-date">—</p>
+          </div>
+        </div>
+        <div class="flex gap-3 mt-4 no-print">
+          <button id="download-contract-png" class="px-5 py-2.5 rounded-lg font-semibold text-sm glass-card neon-border-cyan hover:bg-cyan-500/10 transition-all focus-visible-ring">⬇️ Baixar Contrato em PNG</button>
+        </div>
+      </div>
+
+      <div class="flex justify-end mt-8 no-print">
+        <button data-next="m2" class="next-module-btn group inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bebas text-lg tracking-wide glass-card neon-border-cyan hover:bg-cyan-500/10 transition-all focus-visible-ring">
+          Próximo: Ficha de Personagem
+          <span class="transition-transform group-hover:translate-x-1">→</span>
+        </button>
+      </div>
+
+    </section>
+    <!-- FIM MÓDULO 1 -->
+
+    <!-- ============================================================ -->
+    <!-- MÓDULO 2: FICHA DE PERSONAGEM & ANÁLISE PSICOLÓGICA -->
+    <!-- ============================================================ -->
+    <section id="module-m2" class="module-panel hidden">
+
+      <div class="glass-card rounded-2xl p-5 sm:p-7 mb-6 neon-border-cyan">
+        <p class="font-cutive text-sm sm:text-base text-slate-200 leading-relaxed max-w-3xl">
+          Sua <span class="text-[#ce57df] font-semibold">Ficha de Personagem</span> traduz atributos reais da sua vida em uma matriz de RPG. Não existe nota "errada" — é um retrato do agora, para você acompanhar sua própria evolução.
+        </p>
+      </div>
+
+      <div id="sheet-capture-area">
+
+      <!-- Estilo de Jogo & Dinâmica com o Sistema do arquétipo selecionado -->
+      <div id="archetype-detail" class="glass-card rounded-2xl p-5 sm:p-6 mb-6 neon-border-magenta">
+        <!-- injetado via JS -->
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Coluna esquerda: identidade + arquétipo -->
+        <div class="glass-card rounded-2xl p-5 sm:p-6 neon-border-magenta">
+          <h3 class="font-bebas text-xl tracking-wide text-[#82e5ff] mb-4">Identidade</h3>
+          <label for="char-name" class="block font-mono-rpg text-[11px] text-slate-400 mb-1 uppercase tracking-wider">Nome do Personagem</label>
+          <input id="char-name" type="text" placeholder="Seu nome ou apelido de jogo" class="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm mb-4 focus-visible-ring focus:border-cyan-400/60 outline-none placeholder:text-slate-500">
+
+          <h4 class="font-bebas text-lg tracking-wide text-[#ec9eff] mb-2 mt-2">Arquétipo</h4>
+          <p class="font-cutive text-xs text-slate-400 mb-3">Escolha o arquétipo que mais representa como você enfrenta desafios hoje.</p>
+          <div id="archetype-selector" class="grid grid-cols-2 gap-2 mb-6">
+            <!-- injetado via JS -->
+          </div>
+
+          <h4 class="font-bebas text-lg tracking-wide text-emerald-200 mb-3">Biometria Vital</h4>
+          <div class="space-y-4">
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-mono-rpg text-[11px] text-rose-300 uppercase tracking-wider">❤️ HP — Energia Física</span>
+                <span id="hp-value" class="font-mono-rpg text-xs text-slate-300">70/100</span>
+              </div>
+              <input id="hp-slider" type="range" min="0" max="100" value="70" class="w-full">
+              <p class="font-cutive text-[11px] text-slate-500 mt-1">Como está seu corpo hoje? Você tem dormido, comido e descansado o suficiente?</p>
+            </div>
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-mono-rpg text-[11px] text-blue-300 uppercase tracking-wider">💧 MP — Energia Social/Emocional</span>
+                <span id="mp-value" class="font-mono-rpg text-xs text-slate-300">70/100</span>
+              </div>
+              <input id="mp-slider" type="range" min="0" max="100" value="70" class="w-full">
+              <p class="font-cutive text-[11px] text-slate-500 mt-1">Quanto de "bateria social e emocional" resta em você agora? Conversas e decisões têm pesado ou fluído?</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Coluna central: matriz psicológica (radar) -->
+        <div class="glass-card rounded-2xl p-5 sm:p-6 neon-border-cyan">
+          <h3 class="font-bebas text-xl tracking-wide text-[#82e5ff] mb-1">Matriz Psicológica</h3>
+          <p class="font-cutive text-xs text-slate-400 mb-3">Avalie de 1 a 10 cada atributo, pensando na sua vida real.</p>
+          <div class="relative mb-4" style="height: 260px;">
+            <canvas id="attr-radar-chart"></canvas>
+          </div>
+          <div id="attr-sliders" class="space-y-3">
+            <!-- injetado via JS: Força, Inteligência, Destreza, Sabedoria, Carisma -->
+          </div>
+        </div>
+
+        <!-- Coluna direita: matriz moral + traços comportamentais -->
+        <div class="glass-card rounded-2xl p-5 sm:p-6 neon-border-magenta">
+          <h3 class="font-bebas text-xl tracking-wide text-[#ec9eff] mb-1">Matriz Moral</h3>
+          <p class="font-cutive text-xs text-slate-400 mb-3">Onde você se vê hoje entre estas polaridades?</p>
+          <div class="space-y-4 mb-6">
+            <div>
+              <div class="flex justify-between font-mono-rpg text-[10px] text-slate-400 uppercase mb-1">
+                <span>Caótico</span><span>Ordeiro</span>
+              </div>
+              <input id="moral-order-slider" type="range" min="0" max="100" value="50" class="w-full">
+              <p class="font-cutive text-[11px] text-slate-500 mt-1">Você prefere seguir rotinas e planos, ou se sente mais você no improviso e na espontaneidade?</p>
+            </div>
+            <div>
+              <div class="flex justify-between font-mono-rpg text-[10px] text-slate-400 uppercase mb-1">
+                <span>Egoísta</span><span>Altruísta</span>
+              </div>
+              <input id="moral-good-slider" type="range" min="0" max="100" value="50" class="w-full">
+              <p class="font-cutive text-[11px] text-slate-500 mt-1">Nas suas decisões recentes, você tem priorizado mais as suas próprias necessidades ou as de quem está ao seu redor?</p>
+            </div>
+          </div>
+
+          <h4 class="font-bebas text-lg tracking-wide text-emerald-200 mb-2">Checklist de Traços</h4>
+          <p class="font-cutive text-xs text-slate-400 mb-3">Marque o que reconhece em você ultimamente.</p>
+          <div id="trait-checklist" class="space-y-2 max-h-52 overflow-y-auto pr-1">
+            <!-- injetado via JS -->
+          </div>
+          <div class="flex gap-2 mt-3">
+            <input id="new-trait-input" type="text" placeholder="Adicionar traço personalizado..." class="flex-1 min-w-0 bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-xs focus-visible-ring focus:border-cyan-400/60 outline-none placeholder:text-slate-500">
+            <button id="add-trait-btn" class="px-3 py-2 rounded-lg text-xs font-semibold bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 transition-all focus-visible-ring shrink-0">+ Adicionar</button>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3 mt-6 no-print">
+        <button id="save-sheet-btn" class="px-5 py-2.5 rounded-lg font-bebas text-lg tracking-wide bg-gradient-to-r from-[#02bbff]/80 to-[#82e5ff]/80 hover:from-[#02bbff] hover:to-[#82e5ff] transition-all focus-visible-ring">💾 SALVAR FICHA</button>
+        <button id="download-sheet-png" class="px-5 py-2.5 rounded-lg font-semibold text-sm glass-card neon-border-cyan hover:bg-cyan-500/10 transition-all focus-visible-ring">⬇️ Baixar Ficha em PNG</button>
+      </div>
+
+      <div class="flex justify-end mt-8 no-print">
+        <button data-next="m3" class="next-module-btn group inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bebas text-lg tracking-wide glass-card neon-border-cyan hover:bg-cyan-500/10 transition-all focus-visible-ring">
+          Próximo: Stamina &amp; Mana
+          <span class="transition-transform group-hover:translate-x-1">→</span>
+        </button>
+      </div>
+
+    </section>
+    <!-- FIM MÓDULO 2 -->
+
+    <!-- ============================================================ -->
+    <!-- MÓDULO 3: INVENTÁRIO DE RECURSOS, STAMINA E MANA -->
+    <!-- ============================================================ -->
+    <section id="module-m3" class="module-panel hidden">
+
+      <div class="glass-card rounded-2xl p-5 sm:p-7 mb-6 neon-border-cyan">
+        <p class="font-cutive text-sm sm:text-base text-slate-200 leading-relaxed max-w-3xl">
+          Prevenção de burnout começa em prestar atenção aos seus recursos internos. Faça seu <span class="text-[#02bbff] font-semibold">check-in diário</span>, organize sua Quest Board com custos calibrados à sua realidade, e use o Inventário de Poções Restaurativas para recuperar energia de forma intencional quando a sobrecarga bater.
+        </p>
+      </div>
+
+      <!-- Check-in diário -->
+      <div class="glass-card rounded-2xl p-5 sm:p-6 mb-6 neon-border-magenta">
+        <h3 class="font-bebas text-xl tracking-wide text-[#ec9eff] mb-4">Check-in Diário (0 a 10)</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="font-mono-rpg text-[11px] text-amber-300 uppercase tracking-wider">⏳ Tempo — Relógio da Quest</span>
+              <span id="time-checkin-value" class="font-mono-rpg text-xs text-slate-300">5</span>
+            </div>
+            <input id="time-checkin" type="range" min="0" max="10" value="5" class="w-full">
+            <p class="font-cutive text-[11px] text-slate-500 mt-1">Quanto tempo livre/respiro você sente ter hoje?</p>
+          </div>
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="font-mono-rpg text-[11px] text-rose-300 uppercase tracking-wider">💪 Stamina — Energia Física</span>
+              <span id="stamina-checkin-value" class="font-mono-rpg text-xs text-slate-300">5</span>
+            </div>
+            <input id="stamina-checkin" type="range" min="0" max="10" value="5" class="w-full">
+            <p class="font-cutive text-[11px] text-slate-500 mt-1">Como está seu corpo agora?</p>
+          </div>
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="font-mono-rpg text-[11px] text-blue-300 uppercase tracking-wider">🔋 Mana — Bateria Social/Emocional</span>
+              <span id="mana-checkin-value" class="font-mono-rpg text-xs text-slate-300">5</span>
+            </div>
+            <input id="mana-checkin" type="range" min="0" max="10" value="5" class="w-full">
+            <p class="font-cutive text-[11px] text-slate-500 mt-1">Quanto de "bateria social e emocional" resta em você?</p>
+          </div>
+        </div>
+        <button id="register-checkin-btn" class="mt-5 px-5 py-2.5 rounded-lg font-bebas text-lg tracking-wide bg-gradient-to-r from-[#d738d2]/85 to-[#68a1ed]/85 hover:from-[#d738d2] hover:to-[#68a1ed] transition-all focus-visible-ring">REGISTRAR CHECK-IN</button>
+      </div>
+
+      <!-- Barras de status atuais -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div class="glass-card rounded-xl p-4">
+          <p class="font-mono-rpg text-[11px] text-amber-300 uppercase tracking-wider mb-2">⏳ Tempo</p>
+          <div class="stat-bar-track"><div id="bar-time" class="stat-bar-fill bg-gradient-to-r from-amber-500 to-amber-300" style="width:50%"></div></div>
+        </div>
+        <div class="glass-card rounded-xl p-4">
+          <p class="font-mono-rpg text-[11px] text-rose-300 uppercase tracking-wider mb-2">💪 Stamina</p>
+          <div class="stat-bar-track"><div id="bar-stamina" class="stat-bar-fill bg-gradient-to-r from-rose-500 to-rose-300" style="width:50%"></div></div>
+        </div>
+        <div class="glass-card rounded-xl p-4">
+          <p class="font-mono-rpg text-[11px] text-blue-300 uppercase tracking-wider mb-2">🔋 Mana</p>
+          <div class="stat-bar-track"><div id="bar-mana" class="stat-bar-fill bg-gradient-to-r from-blue-500 to-blue-300" style="width:50%"></div></div>
+        </div>
+      </div>
+
+      <!-- Alerta de sobrecarga / Inventário de Poções -->
+      <div id="overload-alert" class="hidden glass-card-strong rounded-2xl p-5 sm:p-6 mb-6 neon-border-magenta">
+        <h3 class="font-bebas text-xl tracking-wide text-glow-magenta mb-2">⚠️ Sobrecarga Detectada</h3>
+        <p class="font-cutive text-sm text-slate-200 mb-4">Seus recursos estão baixos. Estas poções do seu inventário costumam restaurar mais — use direto por aqui:</p>
+        <div id="potion-suggestions" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+      </div>
+
+      <!-- Quest Board -->
+      <div class="glass-card rounded-2xl p-5 sm:p-6 neon-border-cyan">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+          <h3 class="font-bebas text-xl tracking-wide text-[#82e5ff]">Quest Board</h3>
+          <div class="flex gap-2 items-center flex-wrap">
+            <input id="new-quest-input" type="text" placeholder="Nova tarefa..." class="bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm w-44 focus-visible-ring focus:border-cyan-400/60 outline-none placeholder:text-slate-500">
+            <select id="new-quest-stamina" class="bg-white/5 border border-white/15 rounded-lg px-2 py-2 text-xs focus-visible-ring outline-none">
+              <option value="1">💪 1 · Leve</option>
+              <option value="2" selected>💪 2 · Moderado</option>
+              <option value="3">💪 3 · Alto</option>
+            </select>
+            <select id="new-quest-mana" class="bg-white/5 border border-white/15 rounded-lg px-2 py-2 text-xs focus-visible-ring outline-none">
+              <option value="1">🔋 1 · Leve</option>
+              <option value="2" selected>🔋 2 · Moderado</option>
+              <option value="3">🔋 3 · Alto</option>
+            </select>
+            <button id="add-quest-btn" class="px-4 py-2 rounded-lg text-sm font-semibold bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 transition-all focus-visible-ring">+ Adicionar</button>
+          </div>
+        </div>
+
+        <!-- Guia de custos: exemplos práticos para calibrar a métrica -->
+        <details class="mb-4 glass-card rounded-xl border border-white/10 overflow-hidden">
+          <summary class="cursor-pointer select-none px-4 py-3 font-mono-rpg text-[11px] text-slate-300 uppercase tracking-wider focus-visible-ring">📏 Como definir o custo de uma tarefa? Ver exemplos práticos</summary>
+          <div class="px-4 pb-4 pt-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <p class="font-mono-rpg text-[10px] text-rose-300 uppercase tracking-wider mb-2">💪 Stamina — energia física</p>
+              <ul class="font-cutive text-xs text-slate-300 space-y-1.5 leading-relaxed">
+                <li><span class="text-slate-500">1 · leve —</span> tomar banho, escovar os dentes, lavar uma louça</li>
+                <li><span class="text-slate-500">2 · moderado —</span> preparar uma refeição, caminhada curta, reunião de 1h</li>
+                <li><span class="text-slate-500">3 · alto —</span> faxina da casa, mudança, prova ou entrevista</li>
+              </ul>
+            </div>
+            <div>
+              <p class="font-mono-rpg text-[10px] text-blue-300 uppercase tracking-wider mb-2">🔋 Mana — bateria social e emocional</p>
+              <ul class="font-cutive text-xs text-slate-300 space-y-1.5 leading-relaxed">
+                <li><span class="text-slate-500">1 · leve —</span> responder mensagem de alguém próximo</li>
+                <li><span class="text-slate-500">2 · moderado —</span> ligação de trabalho, encontro social pequeno</li>
+                <li><span class="text-slate-500">3 · alto —</span> festa grande, conflito, apresentação pública</li>
+              </ul>
+            </div>
+            <p class="font-cutive text-[11px] text-slate-500 sm:col-span-2 pt-1 border-t border-white/10">Esses exemplos são só um ponto de partida — o que pesa para uma pessoa pode ser leve para outra. Ajuste conforme a sua realidade.</p>
+          </div>
+        </details>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <p class="font-mono-rpg text-[11px] text-slate-400 uppercase tracking-wider mb-2">📋 Pendentes</p>
+            <div id="quest-pending" class="drop-zone space-y-2 min-h-[100px] p-2 rounded-xl border border-dashed border-white/10"></div>
+          </div>
+          <div>
+            <p class="font-mono-rpg text-[11px] text-emerald-300 uppercase tracking-wider mb-2">✅ Concluídas</p>
+            <div id="quest-done" class="drop-zone space-y-2 min-h-[100px] p-2 rounded-xl border border-dashed border-white/10"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inventário de Poções Restaurativas -->
+      <div class="glass-card rounded-2xl p-5 sm:p-6 mt-6 neon-border-magenta">
+        <h3 class="font-bebas text-xl tracking-wide text-[#ec9eff] mb-1">🧪 Inventário de Poções Restaurativas</h3>
+        <p class="font-cutive text-xs sm:text-sm text-slate-400 mb-4 max-w-2xl leading-relaxed">
+          Atividades que fazem bem para o corpo e a mente também têm um custo — tempo e, às vezes, esforço. Cada poção abaixo é editável: ajuste o nome, o custo e os pontos de Stamina/Mana que ela restaura para refletir a sua realidade. São só um ponto de partida.
+        </p>
+
+        <div id="potion-inventory-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <!-- injetado via JS -->
+        </div>
+
+        <div class="mt-5 pt-4 border-t border-white/10">
+          <p class="font-mono-rpg text-[11px] text-slate-400 uppercase tracking-wider mb-2">+ Criar Poção Personalizada</p>
+          <div class="flex gap-2 flex-wrap items-center">
+            <input id="new-potion-name" type="text" placeholder="Nome da atividade..." class="bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm w-48 focus-visible-ring focus:border-cyan-400/60 outline-none placeholder:text-slate-500">
+            <input id="new-potion-cost" type="text" placeholder="Custo (ex: 15 min)" class="bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm w-32 focus-visible-ring focus:border-cyan-400/60 outline-none placeholder:text-slate-500">
+            <label class="flex items-center gap-1 text-xs font-mono-rpg text-rose-300">💪<input id="new-potion-stamina" type="number" min="0" max="5" value="1" class="bg-white/5 border border-white/15 rounded-lg px-2 py-2 text-sm w-14 focus-visible-ring outline-none" aria-label="Pontos de Stamina restaurados"></label>
+            <label class="flex items-center gap-1 text-xs font-mono-rpg text-blue-300">🔋<input id="new-potion-mana" type="number" min="0" max="5" value="1" class="bg-white/5 border border-white/15 rounded-lg px-2 py-2 text-sm w-14 focus-visible-ring outline-none" aria-label="Pontos de Mana restaurados"></label>
+            <button id="add-potion-btn" class="px-4 py-2 rounded-lg text-sm font-semibold bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 transition-all focus-visible-ring">+ Adicionar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end mt-8 no-print">
+        <button data-next="m4" class="next-module-btn group inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bebas text-lg tracking-wide glass-card neon-border-cyan hover:bg-cyan-500/10 transition-all focus-visible-ring">
+          Próximo: Mural de Missões
+          <span class="transition-transform group-hover:translate-x-1">→</span>
+        </button>
+      </div>
+
+    </section>
+    <!-- FIM MÓDULO 3 -->
+
+    <!-- ============================================================ -->
+    <!-- MÓDULO 4: MURAL DE MISSÕES PSICOLÓGICAS -->
+    <!-- ============================================================ -->
+    <section id="module-m4" class="module-panel hidden">
+
+      <div class="glass-card rounded-2xl p-5 sm:p-7 mb-6 neon-border-magenta">
+        <p class="font-cutive text-sm sm:text-base text-slate-200 leading-relaxed max-w-3xl">
+          Todo herói precisa de <span class="text-[#02bbff] font-semibold">Fundações</span> antes de partir em missão. Registre seus recursos-base, construa Missões Principais e Secundárias, e deixe a Voz Terapêutica cruzar suas metas com o que você realmente tem disponível agora.
+        </p>
+      </div>
+
+      <!-- Fundações -->
+      <div class="glass-card rounded-2xl p-5 sm:p-6 mb-6 neon-border-cyan">
+        <h3 class="font-bebas text-xl tracking-wide text-[#82e5ff] mb-4">🏛️ Inventário Base de Fundações</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="found-finance" class="block font-mono-rpg text-[11px] text-amber-300 uppercase tracking-wider mb-1">💰 Finanças</label>
+            <textarea id="found-finance" rows="3" placeholder="Recursos financeiros disponíveis..." class="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm focus-visible-ring focus:border-cyan-400/60 outline-none placeholder:text-slate-500 resize-none"></textarea>
+            <p class="font-cutive text-[11px] text-slate-500 mt-1.5 leading-relaxed">Pense tanto no que sobra livre no seu orçamento quanto em reservas maiores que poderiam ser usadas se necessário — não existe resposta única certa. Exemplos: dinheiro guardado, o que sobra no fim do mês, 13º/bônus, crédito disponível (com cautela), apoio financeiro de alguém de confiança.</p>
+          </div>
+          <div>
+            <label for="found-allies" class="block font-mono-rpg text-[11px] text-blue-300 uppercase tracking-wider mb-1">🤝 Aliados</label>
+            <textarea id="found-allies" rows="3" placeholder="Pessoas de apoio na sua rede..." class="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm focus-visible-ring focus:border-cyan-400/60 outline-none placeholder:text-slate-500 resize-none"></textarea>
+          </div>
+        </div>
+        <button id="save-foundations-btn" class="mt-4 px-5 py-2 rounded-lg text-sm font-semibold bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 transition-all focus-visible-ring">💾 Salvar Fundações</button>
+      </div>
+
+      <!-- Árvore de Habilidades -->
+      <div class="glass-card rounded-2xl p-5 sm:p-6 mb-6 neon-border-magenta">
+        <div class="flex items-start justify-between flex-wrap gap-3 mb-2">
+          <div>
+            <h3 class="font-bebas text-xl tracking-wide text-[#ec9eff]">🌳 Árvore de Habilidades</h3>
+            <p class="font-cutive text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">Suas habilidades evoluem aos poucos — cada nível representa prática real. Evoluir custa tempo e, às vezes, dinheiro ou esforço: respeite o que você tem disponível agora e avance no seu ritmo.</p>
+          </div>
+          <div class="text-right shrink-0">
+            <p id="skilltree-total-points" class="font-bebas text-3xl text-[#02bbff] leading-none">0</p>
+            <p class="font-mono-rpg text-[10px] text-slate-400 uppercase tracking-wider">pontos totais</p>
+          </div>
+        </div>
+
+        <div id="skilltree-branches" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          <!-- injetado via JS -->
+        </div>
+
+        <div class="mt-5 pt-4 border-t border-white/10">
+          <p class="font-mono-rpg text-[11px] text-slate-400 uppercase tracking-wider mb-2">+ Adicionar Habilidade Personalizada</p>
+          <div class="flex gap-2 flex-wrap items-center">
+            <select id="new-skill-branch" class="bg-white/5 border border-white/15 rounded-lg px-2 py-2 text-xs focus-visible-ring outline-none">
+              <!-- injetado via JS -->
+            </select>
+            <input id="new-skill-name" type="text" placeholder="Nome da habilidade..." class="flex-1 min-w-[160px] bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm focus-visible-ring focus:border-cyan-400/60 outline-none placeholder:text-slate-500">
+            <button id="add-skill-btn" class="px-4 py-2 rounded-lg text-sm font-semibold bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 transition-all focus-visible-ring">+ Adicionar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Construtor de Missão -->
+      <div class="glass-card rounded-2xl p-5 sm:p-6 mb-6 neon-border-magenta">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <h3 class="font-bebas text-xl tracking-wide text-[#ec9eff]">📜 Suas Missões</h3>
+          <button id="open-mission-modal-btn" class="px-5 py-2.5 rounded-lg font-bebas text-lg tracking-wide bg-gradient-to-r from-[#d738d2]/85 to-[#68a1ed]/85 hover:from-[#d738d2] hover:to-[#68a1ed] transition-all focus-visible-ring">+ NOVA MISSÃO</button>
+        </div>
+
+        <div class="mt-6">
+          <p class="font-mono-rpg text-[11px] text-amber-300 uppercase tracking-wider mb-3">⭐ Missões Principais (longo prazo)</p>
+          <div id="main-missions-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <p class="font-cutive text-sm text-slate-500 italic col-span-full">Nenhuma missão principal ainda. Crie a primeira!</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end mt-8 no-print">
+        <button data-next="m5" class="next-module-btn group inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bebas text-lg tracking-wide glass-card neon-border-cyan hover:bg-cyan-500/10 transition-all focus-visible-ring">
+          Próximo: Mapa da Jornada
+          <span class="transition-transform group-hover:translate-x-1">→</span>
+        </button>
+      </div>
+
+    </section>
+    <!-- FIM MÓDULO 4 -->
+
+    <!-- ============================================================ -->
+    <!-- MÓDULO 5: MAPA DA JORNADA (VISÃO GERAL E PROGRESSO) -->
+    <!-- ============================================================ -->
+    <section id="module-m5" class="module-panel hidden">
+
+      <div class="glass-card rounded-2xl p-5 sm:p-7 mb-6 neon-border-cyan">
+        <p class="font-cutive text-sm sm:text-base text-slate-200 leading-relaxed max-w-3xl">
+          Todo bom RPG tem um <span class="text-[#02bbff] font-semibold">mapa</span>. Aqui você vê o caminho que já percorreu, o que ainda falta pela frente, e pode salvar o registro da sua jornada — ou começar de novo, quando fizer sentido.
+        </p>
+      </div>
+
+      <div id="journey-report-capture">
+
+        <!-- Resumo do Personagem -->
+        <div id="journey-character-recap" class="pdf-block glass-card rounded-2xl p-5 sm:p-6 mb-6 neon-border-magenta">
+          <!-- injetado via JS -->
+        </div>
+
+        <!-- Mapa da Jornada: trilha de Missões Principais -->
+        <div class="pdf-block glass-card rounded-2xl p-5 sm:p-6 mb-6 neon-border-cyan">
+          <h3 class="font-bebas text-xl tracking-wide text-[#82e5ff] mb-1">🗺️ Mapa da Jornada</h3>
+          <p class="font-cutive text-xs text-slate-400 mb-4">Cada ponto é uma Missão Principal do Mural (Módulo #4). O brilho do anel mostra o quanto dela você já percorreu.</p>
+          <div id="journey-map-svg-wrap" class="w-full overflow-x-auto"></div>
+          <div id="journey-map-legend" class="mt-4 space-y-1.5"></div>
+
+          <div class="mt-5 pt-4 border-t border-white/10">
+            <p class="font-mono-rpg text-[11px] text-slate-400 uppercase tracking-wider mb-3">📅 Linha do Tempo das Missões</p>
+            <div id="mission-timeline-track" class="flex items-start gap-0 overflow-x-auto pb-2"></div>
+          </div>
+        </div>
+
+        <!-- Painel de Progresso -->
+        <div class="pdf-block glass-card rounded-2xl p-5 sm:p-6 mb-6 neon-border-magenta">
+          <h3 class="font-bebas text-xl tracking-wide text-[#ec9eff] mb-4">📊 Painel de Progresso</h3>
+          <div id="journey-progress-stats" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
+        </div>
+
+        <!-- Linha do Tempo Recente -->
+        <div class="pdf-block glass-card rounded-2xl p-5 sm:p-6 mb-6 neon-border-cyan">
+          <h3 class="font-bebas text-xl tracking-wide text-[#82e5ff] mb-4">🕓 Linha do Tempo Recente</h3>
+          <div id="journey-timeline" class="space-y-2 max-h-72 overflow-y-auto pr-1"></div>
+        </div>
+
+        <!-- Dicas & Observações -->
+        <div class="pdf-block glass-card rounded-2xl p-5 sm:p-6 mb-6 neon-border-magenta">
+          <h3 class="font-bebas text-xl tracking-wide text-[#ec9eff] mb-4">💡 Dicas &amp; Observações</h3>
+          <div id="journey-tips" class="space-y-3"></div>
+        </div>
+
+      </div>
+
+      <!-- Ações: salvar registros / nova jornada -->
+      <div class="glass-card rounded-2xl p-5 sm:p-6 neon-border-cyan no-print">
+        <h3 class="font-bebas text-xl tracking-wide text-[#82e5ff] mb-1">Gerenciar Jornada</h3>
+        <p class="font-cutive text-xs text-slate-400 mb-4 max-w-2xl">Salve um registro completo da sua jornada em PDF — útil para levar para a sessão — ou comece uma nova jornada do zero (isso apaga todos os dados salvos neste dispositivo).</p>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <button id="save-journey-pdf-btn" class="flex-1 px-5 py-2.5 rounded-lg font-bebas text-lg tracking-wide bg-gradient-to-r from-[#02bbff]/80 to-[#82e5ff]/80 hover:from-[#02bbff] hover:to-[#82e5ff] transition-all focus-visible-ring">💾 SALVAR REGISTROS EM PDF</button>
+          <button id="open-reset-modal-btn" class="flex-1 px-5 py-2.5 rounded-lg font-semibold text-sm glass-card border border-white/15 hover:bg-white/10 transition-all focus-visible-ring">🔄 Começar Nova Jornada</button>
+        </div>
+      </div>
+
+      <div class="flex justify-end mt-8 no-print">
+        <button data-next="m1" class="next-module-btn group inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bebas text-lg tracking-wide glass-card neon-border-magenta hover:bg-pink-500/10 transition-all focus-visible-ring">
+          <span class="transition-transform group-hover:-translate-x-1">↩</span>
+          Voltar ao Hub Central
+        </button>
+      </div>
+
+    </section>
+    <!-- FIM MÓDULO 5 -->
+
+    <!-- Modal holográfico: construtor de missão -->
+    <div id="mission-modal" class="modal-overlay">
+      <div class="modal-box glass-card-strong neon-border-cyan rounded-2xl p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-bebas text-2xl tracking-wide text-glow-cyan">✨ Construtor de Missão</h3>
+          <button id="close-mission-modal" class="text-slate-400 hover:text-white text-2xl leading-none focus-visible-ring" aria-label="Fechar">&times;</button>
+        </div>
+
+        <label for="mission-title" class="block font-mono-rpg text-[11px] text-slate-400 mb-1 uppercase tracking-wider">Título da Missão Principal</label>
+        <input id="mission-title" type="text" placeholder="Ex: Recuperar minha rotina de sono" class="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm mb-4 focus-visible-ring focus:border-cyan-400/60 outline-none placeholder:text-slate-500">
+
+        <label for="mission-desc" class="block font-mono-rpg text-[11px] text-slate-400 mb-1 uppercase tracking-wider">Descrição / Motivo</label>
+        <textarea id="mission-desc" rows="2" placeholder="Por que essa missão importa para você?" class="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm mb-4 focus-visible-ring focus:border-cyan-400/60 outline-none placeholder:text-slate-500 resize-none"></textarea>
+
+        <label class="block font-mono-rpg text-[11px] text-slate-400 mb-2 uppercase tracking-wider">Missões Secundárias (passos diários)</label>
+        <div id="side-quests-inputs" class="space-y-2 mb-2">
+          <input type="text" placeholder="Passo 1..." class="side-quest-input w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm focus-visible-ring focus:border-cyan-400/60 outline-none placeholder:text-slate-500">
+        </div>
+        <button id="add-sidequest-input-btn" type="button" class="text-xs text-[#02bbff] hover:text-[#82e5ff] mb-4 focus-visible-ring">+ adicionar outro passo</button>
+
+        <label class="block font-mono-rpg text-[11px] text-slate-400 mb-2 uppercase tracking-wider">🎒 Recursos Necessários — o que essa missão exige?</label>
+        <p class="font-cutive text-[11px] text-slate-500 mb-2">Liste o que a missão precisa e marque o que você já tem. O que ficar sem marcar são seus próximos obstáculos a resolver.</p>
+        <div id="required-resources-inputs" class="space-y-2 mb-2">
+          <div class="required-resource-row flex items-center gap-2">
+            <input type="text" placeholder="Ex: tênis de corrida, R$50 guardado..." class="required-resource-input flex-1 min-w-0 bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm focus-visible-ring focus:border-cyan-400/60 outline-none placeholder:text-slate-500">
+            <label class="flex items-center gap-1 text-[11px] font-mono-rpg text-emerald-300 whitespace-nowrap shrink-0">
+              <input type="checkbox" class="required-resource-have accent-emerald-400 focus-visible-ring"> Já tenho
+            </label>
+          </div>
+        </div>
+        <button id="add-resource-input-btn" type="button" class="text-xs text-[#02bbff] hover:text-[#82e5ff] mb-4 focus-visible-ring">+ adicionar outro recurso</button>
+
+        <div class="glass-card rounded-xl p-4 mb-5 neon-border-cyan">
+          <h4 class="font-bebas text-lg tracking-wide text-[#82e5ff] mb-1">👣 Primeiros Passos</h4>
+          <p id="mission-encouragement-phrase" class="font-cutive text-xs text-[#ec9eff] italic mb-3">—</p>
+          <label for="mission-first-step" class="block font-mono-rpg text-[10px] text-slate-400 mb-1 uppercase tracking-wider">O que você pode fazer hoje para dar início a essa missão?</label>
+          <textarea id="mission-first-step" rows="2" placeholder="Um passo pequeno e concreto..." class="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm mb-3 focus-visible-ring focus:border-cyan-400/60 outline-none placeholder:text-slate-500 resize-none"></textarea>
+          <label for="mission-getting-closer" class="block font-mono-rpg text-[10px] text-slate-400 mb-1 uppercase tracking-wider">Como se aproximar mais do resultado esperado?</label>
+          <textarea id="mission-getting-closer" rows="2" placeholder="O que te aproxima do objetivo final..." class="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm focus-visible-ring focus:border-cyan-400/60 outline-none placeholder:text-slate-500 resize-none"></textarea>
+        </div>
+
+        <label for="mission-requirement" class="block font-mono-rpg text-[11px] text-slate-400 mb-1 uppercase tracking-wider">Qual recurso essa missão mais exige?</label>
+        <select id="mission-requirement" class="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm mb-5 focus-visible-ring outline-none">
+          <option value="finance">💰 Finanças</option>
+          <option value="skills">🛠️ Habilidades</option>
+          <option value="allies">🤝 Aliados</option>
+        </select>
+
+        <div id="voz-terapeutica-box" class="hidden glass-card rounded-xl p-4 mb-5 neon-border-magenta">
+          <p class="font-mono-rpg text-[10px] text-[#ce57df] uppercase tracking-widest mb-1">🔮 Voz Terapêutica</p>
+          <p id="voz-terapeutica-text" class="font-cutive text-sm text-slate-200 leading-relaxed"></p>
+        </div>
+
+        <div class="flex gap-3">
+          <button id="preview-voz-btn" type="button" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold glass-card border border-white/15 hover:bg-white/10 transition-all focus-visible-ring">🔮 Consultar Voz Terapêutica</button>
+          <button id="save-mission-btn" type="button" class="flex-1 px-4 py-2.5 rounded-lg font-bebas text-lg tracking-wide bg-gradient-to-r from-[#d738d2]/85 to-[#68a1ed]/85 hover:from-[#d738d2] hover:to-[#68a1ed] transition-all focus-visible-ring">Salvar Missão</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de confirmação: começar nova jornada -->
+    <div id="reset-modal" class="modal-overlay">
+      <div class="modal-box glass-card-strong neon-border-magenta rounded-2xl p-6 sm:p-8 max-w-md w-full">
+        <h3 class="font-bebas text-2xl tracking-wide text-glow-magenta mb-3">🔄 Começar Nova Jornada?</h3>
+        <p class="font-cutive text-sm text-slate-200 leading-relaxed mb-2">Isso vai apagar permanentemente todos os dados salvos neste dispositivo: personagem, quests, missões, check-ins e poções.</p>
+        <p class="font-cutive text-sm text-[#ec9eff] leading-relaxed mb-6">Recomendamos salvar seus registros em PDF antes de continuar. Essa ação não pode ser desfeita.</p>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <button id="cancel-reset-btn" type="button" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold glass-card border border-white/15 hover:bg-white/10 transition-all focus-visible-ring">Cancelar</button>
+          <button id="confirm-reset-btn" type="button" class="flex-1 px-4 py-2.5 rounded-lg font-bebas text-lg tracking-wide bg-gradient-to-r from-rose-600/80 to-rose-500/80 hover:from-rose-600 hover:to-rose-500 transition-all focus-visible-ring">Sim, começar do zero</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de exportação: arquivo pronto (link manual, evita navegação automática que quebra em ambientes restritos) -->
+    <div id="export-modal" class="modal-overlay">
+      <div class="modal-box glass-card-strong neon-border-cyan rounded-2xl p-6 sm:p-8 max-w-sm w-full text-center">
+        <div class="text-4xl mb-3">📥</div>
+        <h3 class="font-bebas text-2xl tracking-wide text-glow-cyan mb-2">Arquivo pronto!</h3>
+        <p id="export-modal-desc" class="font-cutive text-sm text-slate-300 mb-6">Toque no botão abaixo para abrir ou salvar.</p>
+        <a id="export-modal-link" href="#" download="" target="_blank" rel="noopener" class="block w-full px-5 py-3 rounded-lg font-bebas text-lg tracking-wide bg-gradient-to-r from-[#02bbff]/80 to-[#82e5ff]/80 hover:from-[#02bbff] hover:to-[#82e5ff] transition-all focus-visible-ring mb-3">⬇️ Abrir / Baixar Arquivo</a>
+        <button id="close-export-modal" type="button" class="text-sm text-slate-400 hover:text-white focus-visible-ring">Fechar</button>
+      </div>
+    </div>
+
+    <!-- Modal de Boas-Vindas: abre automaticamente no primeiro acesso -->
+    <div id="welcome-modal" class="modal-overlay">
+      <div class="modal-box glass-card-strong neon-border-magenta rounded-2xl p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto text-center">
+        <img id="brand-logo-welcome" src="" alt="" aria-hidden="true" class="w-24 h-24 sm:w-28 sm:h-28 mx-auto rounded-full object-cover mb-4 shadow-[0_0_35px_rgba(177,4,220,0.35)]">
+        <h2 class="font-bebas text-3xl tracking-wide text-glow-magenta mb-1">Bem-vindo(a) à Jornada da Vida</h2>
+        <p class="font-cutive text-sm text-slate-300 mb-5">Aqui, o autoconhecimento e o autocuidado ganham a forma de um jogo.</p>
+
+        <div class="text-left space-y-2.5 mb-5">
+          <p class="flex items-start gap-2 font-cutive text-sm text-slate-200"><span class="shrink-0">🧭</span> Escolha um Modo de Jogo que combine com o momento que você está vivendo.</p>
+          <p class="flex items-start gap-2 font-cutive text-sm text-slate-200"><span class="shrink-0">🧝</span> Crie sua Ficha de Personagem, transformando características reais em atributos de RPG.</p>
+          <p class="flex items-start gap-2 font-cutive text-sm text-slate-200"><span class="shrink-0">🔋</span> Faça check-ins diários de energia e organize tarefas no Quest Board.</p>
+          <p class="flex items-start gap-2 font-cutive text-sm text-slate-200"><span class="shrink-0">📜</span> Construa Missões para seus objetivos, com passos pequenos e recursos necessários.</p>
+          <p class="flex items-start gap-2 font-cutive text-sm text-slate-200"><span class="shrink-0">🗺️</span> Acompanhe tudo no Mapa da Jornada — seu progresso e sua linha do tempo.</p>
+        </div>
+
+        <p class="font-cutive text-xs text-slate-400 mb-6 leading-relaxed">Não existe forma certa de jogar: vá no seu ritmo, revisite qualquer módulo quando quiser, e use esta ferramenta como um complemento ao seu processo terapêutico. Tudo o que você registra fica salvo só neste dispositivo.</p>
+
+        <button id="start-journey-btn" type="button" class="w-full px-5 py-3 rounded-lg font-bebas text-lg tracking-wide bg-gradient-to-r from-[#b104dc]/85 to-[#02bbff]/85 hover:from-[#b104dc] hover:to-[#02bbff] transition-all focus-visible-ring">Começar Jornada</button>
+      </div>
+    </div>
+
+    <!-- Modal de Análise de Personagem: aparece após salvar a Ficha (Módulo #2) -->
+    <div id="character-analysis-modal" class="modal-overlay">
+      <div class="modal-box glass-card-strong neon-border-magenta rounded-2xl p-6 sm:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="font-bebas text-2xl tracking-wide text-glow-magenta">📖 Análise do Personagem</h3>
+          <button id="close-analysis-modal" type="button" class="text-slate-400 hover:text-white text-2xl leading-none focus-visible-ring" aria-label="Fechar">&times;</button>
+        </div>
+        <div id="analysis-content"><!-- injetado via JS --></div>
+      </div>
+    </div>
+
+
+  </main>
+
+  <!-- ===================== RODAPÉ LEGAL (OBRIGATÓRIO) ===================== -->
+  <footer class="mt-16 pt-8 pb-10 border-t border-white/10 text-center text-sm text-slate-300 max-w-4xl mx-auto px-6">
+    <p class="font-cutive mb-2">Este recurso foi desenvolvido como ferramenta complementar ao processo terapêutico pela psicóloga <span class="font-semibold text-white">Alanne Raquel Fragoso de Farias - CRP 13/9646</span>.</p>
+    <p class="font-cutive text-xs text-slate-400 max-w-2xl mx-auto mb-4 leading-relaxed">Aviso Legal: Este aplicativo é uma ferramenta educacional e informativa. Ele não fornece aconselhamento psicológico, diagnóstico ou tratamento, nem substitui a avaliação e o acompanhamento de um profissional de saúde mental qualificado. Ao perceber sintomas que afetam negativamente áreas importantes da sua vida, procure ajuda profissional.</p>
+    <p class="font-cutive">Entre em contato para quaisquer dúvidas ou orientações: <a href="https://instagram.com/psicothica" target="_blank" rel="noopener" class="text-pink-400 hover:text-[#ce57df] font-semibold underline transition-colors">@psicothica</a></p>
+  </footer>
+
+</div>
+
+<div id="toast" class="toast glass-card-strong px-6 py-3 rounded-xl neon-border-cyan text-sm font-semibold"></div>
+
+<script>
+/* ============================================================
+   FUNDO: REDE NEURAL ANIMADA (Canvas)
+   ============================================================ */
+(function initNeuralBg(){
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let w, h, particles = [];
+  const PARTICLE_COUNT = window.innerWidth < 640 ? 35 : 65;
+  const MAX_DIST = 140;
+
+  function resize(){
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  /* Paleta oficial Psicothica: orquídea, ciano elétrico e lilás-lavanda */
+  const PARTICLE_COLORS = {
+    orchid: { fill: 'rgba(206,87,223,0.55)', glow: 'rgba(206,87,223,0.6)' },
+    cyan:   { fill: 'rgba(2,187,255,0.55)',  glow: 'rgba(2,187,255,0.6)' },
+    lilac:  { fill: 'rgba(236,158,255,0.55)', glow: 'rgba(236,158,255,0.6)' },
+  };
+  function makeParticle(){
+    const roll = Math.random();
+    const hue = roll < 0.4 ? 'orchid' : (roll < 0.75 ? 'cyan' : 'lilac');
+    return {
+      x: Math.random()*w, y: Math.random()*h,
+      vx: (Math.random()-0.5)*0.25, vy: (Math.random()-0.5)*0.25,
+      r: Math.random()*1.5 + 0.8,
+      hue
+    };
+  }
+  for(let i=0;i<PARTICLE_COUNT;i++) particles.push(makeParticle());
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function draw(){
+    ctx.clearRect(0,0,w,h);
+    for(const p of particles){
+      if(!reduceMotion){
+        p.x += p.vx; p.y += p.vy;
+        if(p.x < 0 || p.x > w) p.vx *= -1;
+        if(p.y < 0 || p.y > h) p.vy *= -1;
+      }
+      const c = PARTICLE_COLORS[p.hue];
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = c.fill;
+      ctx.shadowBlur = 6;
+      ctx.shadowColor = c.glow;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    for(let i=0;i<particles.length;i++){
+      for(let j=i+1;j<particles.length;j++){
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if(dist < MAX_DIST){
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = `rgba(130,229,255,${0.12 * (1 - dist/MAX_DIST)})`;
+          ctx.lineWidth = 0.6;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ============================================================
+   LOGO DA MARCA + MODAL DE BOAS-VINDAS (primeiro acesso)
+   ============================================================ */
+const BRAND_LOGO_B64 = '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';
+const BRAND_LOGO_SRC = 'data:image/webp;base64,' + BRAND_LOGO_B64;
+document.getElementById('brand-logo-header').src = BRAND_LOGO_SRC;
+document.getElementById('brand-logo-welcome').src = BRAND_LOGO_SRC;
+
+const WELCOME_SEEN_KEY = 'jornada_vida_welcome_seen';
+const welcomeModal = document.getElementById('welcome-modal');
+
+function openWelcomeModal(){ welcomeModal.classList.add('active'); }
+function closeWelcomeModal(){
+  welcomeModal.classList.remove('active');
+  saveData(WELCOME_SEEN_KEY, true);
+}
+
+document.getElementById('start-journey-btn').addEventListener('click', closeWelcomeModal);
+document.getElementById('reopen-welcome-btn').addEventListener('click', openWelcomeModal);
+welcomeModal.addEventListener('click', (e)=>{ if(e.target === welcomeModal) closeWelcomeModal(); });
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && welcomeModal.classList.contains('active')) closeWelcomeModal(); });
+
+(function initWelcomeModal(){
+  const hasSeen = loadData(WELCOME_SEEN_KEY, false);
+  if(!hasSeen) openWelcomeModal();
+})();
+
+
+
+/* ============================================================
+   UTILITÁRIOS GERAIS
+   ============================================================ */
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(()=> t.classList.remove('show'), 2600);
+}
+
+function loadData(key, fallback){
+  try{
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  }catch(e){ return fallback; }
+}
+function saveData(key, value){
+  try{
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  }catch(e){ return false; }
+}
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function formatDatePT(d){
+  return new Intl.DateTimeFormat('pt-BR', {day:'2-digit', month:'long', year:'numeric'}).format(d);
+}
+function formatDateTimePT(d){
+  return new Intl.DateTimeFormat('pt-BR', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}).format(d);
+}
+
+/* Log de atividades: alimenta a Linha do Tempo do Módulo #5 (Mapa da Jornada) */
+function logActivity(icon, text){
+  const log = loadData('rpg_activity_log', []);
+  log.unshift({ icon, text, ts: Date.now() });
+  saveData('rpg_activity_log', log.slice(0, 50));
+}
+
+/* Modal de exportação: usa um link real (Blob + createObjectURL) que o usuário clica manualmente.
+   Evitamos disparar o download automaticamente (via .click() sintético ou pdf.save()) porque, em
+   navegadores/ambientes com sandbox restrito (ex: iOS, webviews), esses atalhos podem falhar
+   silenciosamente ou até navegar a própria página para a URL do arquivo, deixando a tela em branco. */
+let _currentExportUrl = null;
+function showExportModal(blob, filename, description){
+  if(_currentExportUrl) URL.revokeObjectURL(_currentExportUrl);
+  _currentExportUrl = URL.createObjectURL(blob);
+  const link = document.getElementById('export-modal-link');
+  link.href = _currentExportUrl;
+  link.download = filename;
+  document.getElementById('export-modal-desc').textContent = description;
+  document.getElementById('export-modal').classList.add('active');
+}
+(function initExportModal(){
+  const modal = document.getElementById('export-modal');
+  document.getElementById('close-export-modal').addEventListener('click', ()=> modal.classList.remove('active'));
+  modal.addEventListener('click', (e)=>{ if(e.target === modal) modal.classList.remove('active'); });
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && modal.classList.contains('active')) modal.classList.remove('active'); });
+})();
+
+/* Blindagem para exportação PDF multi-página (html2canvas + jsPDF):
+   captura cada .pdf-block individualmente e só quebra de página entre blocos,
+   nunca cortando um cartão de conteúdo ao meio. */
+/* Remove emojis/pictogramas do texto antes de renderizar no PDF nativo: as fontes padrão do
+   jsPDF (Helvetica/WinAnsi) não têm esses glifos e quebrariam o layout do documento. */
+function stripEmoji(str){
+  return String(str ?? '')
+    .replace(/[\u{1F1E6}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\uFE0F\u200D]/gu, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+/* Exportação do Dossiê da Jornada: PDF nativo (texto e vetor via jsPDF), sem html2canvas.
+   Capturar a UI com glassmorphism + SVG do mapa via html2canvas se mostrou frágil (quebra de
+   layout, fontes, fundo). Um relatório nativo evita esses problemas por completo e também é o
+   formato mais adequado para compartilhar o progresso com o terapeuta: limpo, legível e
+   imprimível, sem depender de renderizar o visual neon da interface. */
+async function exportJourneyReportPDF(){
+  try{
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = 210, pageHeight = 297;
+    const marginX = 18, topStart = 42, marginBottom = 26;
+    const contentWidth = pageWidth - marginX * 2;
+    let y = topStart;
+    let pageNum = 1;
+
+    const HEADER_BG = [19, 1, 105];
+    const ACCENT = [150, 20, 175];
+    const TEXT = [40, 40, 48];
+    const MUTED = [120, 120, 130];
+
+    function drawHeader(){
+      pdf.setFillColor(...HEADER_BG);
+      pdf.rect(0, 0, pageWidth, 28, 'F');
+      pdf.setTextColor(255,255,255);
+      pdf.setFont('helvetica','bold');
+      pdf.setFontSize(15);
+      pdf.text('Dossiê da Jornada da Vida', marginX, 13);
+      pdf.setFont('helvetica','normal');
+      pdf.setFontSize(8.5);
+      pdf.text('MyDose - Meu Ecossistema Psi', marginX, 20);
+      pdf.text(formatDatePT(new Date()), pageWidth - marginX, 20, { align:'right' });
+    }
+
+    function drawFooter(){
+      pdf.setDrawColor(215,215,220);
+      pdf.setLineWidth(0.2);
+      pdf.line(marginX, pageHeight-20, pageWidth-marginX, pageHeight-20);
+      pdf.setFont('helvetica','normal');
+      pdf.setFontSize(7);
+      pdf.setTextColor(...MUTED);
+      const legalLines = pdf.splitTextToSize('Ferramenta complementar ao processo terapêutico - Alanne Raquel Fragoso de Farias, CRP 13/9646. Não substitui avaliação profissional.', contentWidth - 12);
+      legalLines.forEach((line,i)=> pdf.text(line, marginX, pageHeight-15+(i*3.2)));
+      pdf.text(String(pageNum), pageWidth-marginX, pageHeight-15, { align:'right' });
+    }
+
+    function newPage(){
+      drawFooter();
+      pdf.addPage();
+      pageNum++;
+      drawHeader();
+      y = topStart;
+    }
+
+    function ensureSpace(h){
+      if(y + h > pageHeight - marginBottom) newPage();
+    }
+
+    function sectionTitle(text){
+      ensureSpace(11);
+      pdf.setFont('helvetica','bold');
+      pdf.setFontSize(12);
+      pdf.setTextColor(...ACCENT);
+      pdf.text(stripEmoji(text).toUpperCase(), marginX, y);
+      pdf.setDrawColor(...ACCENT);
+      pdf.setLineWidth(0.5);
+      pdf.line(marginX, y+1.8, marginX+contentWidth, y+1.8);
+      y += 8;
+    }
+
+    function para(text, opts={}){
+      const clean = stripEmoji(text);
+      if(!clean) return;
+      pdf.setFont('helvetica', opts.bold ? 'bold':'normal');
+      pdf.setFontSize(opts.size || 9.5);
+      pdf.setTextColor(...(opts.color || TEXT));
+      const lines = pdf.splitTextToSize(clean, contentWidth - (opts.indent||0));
+      lines.forEach(line=>{
+        ensureSpace(5);
+        pdf.text(line, marginX + (opts.indent||0), y);
+        y += 4.8;
+      });
+    }
+
+    function spacer(h=3.5){ y += h; }
+
+    /* ---------- Conteúdo ---------- */
+    drawHeader();
+
+    const charName = stripEmoji(document.getElementById('char-name').value.trim()) || 'Jogador(a) sem nome';
+    const archetype = ARCHETYPES.find(a=>a.key===selectedArchetype) || ARCHETYPES[0];
+    const mode = GAME_MODES[currentMode];
+    const hp = document.getElementById('hp-slider').value;
+    const mp = document.getElementById('mp-slider').value;
+
+    sectionTitle('Personagem');
+    para(`Nome: ${charName}`, {bold:true});
+    para(`Arquétipo: ${archetype.name}    Modo de Jogo: ${mode.name}`);
+    para(`HP: ${hp}/100    MP: ${mp}/100`);
+    spacer(2);
+
+    const questsTotal = quests.length;
+    const questsDone = quests.filter(q=>q.status==='done').length;
+    const missionsTotal = missions.length;
+    const missionsDone = missions.filter(m=>m.sideQuests.length>0 && m.sideQuests.every(sq=>sq.done)).length;
+
+    sectionTitle('Painel de Progresso');
+    para(`Quests concluídas: ${questsDone} de ${questsTotal}`);
+    para(`Missões concluídas: ${missionsDone} de ${missionsTotal}`);
+    para(`Stamina atual: ${resourceState.stamina}/10    Mana atual: ${resourceState.mana}/10    Tempo: ${resourceState.time}/10`);
+    spacer(2);
+
+    sectionTitle('Missões Principais');
+    if(missions.length === 0){
+      para('Nenhuma missão principal registrada ainda.');
+    } else {
+      missions.forEach(m=>{
+        const doneCount = m.sideQuests.filter(sq=>sq.done).length;
+        const total = m.sideQuests.length;
+        ensureSpace(9);
+        para(m.title, { bold:true, size:10.5 });
+        if(m.desc) para(m.desc, { color: MUTED });
+        para(`Progresso: ${doneCount} de ${total} passos concluídos    Requisito principal: ${REQUIREMENT_LABELS[m.requirement]||''}`);
+        if(m.createdAt){
+          para(`Criada em: ${formatDatePT(new Date(m.createdAt))}${m.completedAt ? '    Concluída em: '+formatDatePT(new Date(m.completedAt)) : ''}`, {color:MUTED, size:8.5});
+        }
+        m.sideQuests.forEach(sq=>{
+          para(`${sq.done?'[X]':'[ ]'} ${sq.text}`, {indent:4, size:9});
+        });
+        if(m.requiredResources && m.requiredResources.length){
+          para('Recursos necessários:', {size:9, bold:true});
+          m.requiredResources.forEach(r=>{
+            para(`${r.have?'[tenho]':'[preciso]'} ${r.text}`, {indent:4, size:9});
+          });
+        }
+        if(m.firstStep) para(`Primeiro passo: ${m.firstStep}`, {size:9});
+        if(m.gettingCloser) para(`Aproximação do resultado: ${m.gettingCloser}`, {size:9});
+        spacer(3.5);
+      });
+    }
+
+    sectionTitle('Árvore de Habilidades');
+    para(`Pontos totais acumulados: ${totalSkillPoints()}`, {bold:true});
+    skillTree.forEach(branch=>{
+      para(branch.name, {bold:true, size:10});
+      branch.skills.forEach(sk=>{
+        para(`${sk.name}: nível ${sk.level}/${MAX_SKILL_LEVEL}`, {indent:4, size:9});
+      });
+    });
+    spacer(2);
+
+    sectionTitle('Fundações');
+    para(`Finanças: ${foundations.finance || 'não preenchido'}`);
+    para(`Aliados: ${foundations.allies || 'não preenchido'}`);
+    spacer(2);
+
+    sectionTitle('Linha do Tempo de Atividades');
+    const log = loadData('rpg_activity_log', []);
+    if(log.length === 0){
+      para('Nenhuma atividade registrada ainda.');
+    } else {
+      log.forEach(entry=>{
+        para(`${formatDateTimePT(new Date(entry.ts))} - ${entry.text}`, {size:9});
+      });
+    }
+    spacer(2);
+
+    sectionTitle('Dicas e Observações');
+    generateJourneyTips().forEach(t=>{
+      para(`- ${t.text}`, {size:9.5});
+    });
+
+    drawFooter();
+
+    const blob = pdf.output('blob');
+    showExportModal(blob, 'dossie-jornada-rpg-da-vida.pdf', 'Seu PDF está pronto. Toque no botão abaixo para abrir ou salvar.');
+  }catch(e){
+    showToast('⚠️ Não foi possível gerar o PDF.');
+  }
+}
+
+/* Blindagem para exportação PNG (html2canvas) */
+async function exportElementAsPNG(elementId, filename){
+  const el = document.getElementById(elementId);
+  if(!el) return;
+  const toHide = el.querySelectorAll('.no-print, button, .no-export');
+  const prevDisplay = [];
+  toHide.forEach(node => { prevDisplay.push(node.style.display); node.style.display = 'none'; });
+
+  const clampNodes = el.querySelectorAll('[class*="line-clamp"]');
+  const prevClamp = [];
+  clampNodes.forEach(node => { prevClamp.push(node.className); node.className = node.className.replace(/line-clamp-\S+/g,''); });
+
+  const scrollNodes = el.querySelectorAll('.overflow-y-auto');
+  const prevOverflow = [];
+  scrollNodes.forEach(node => { prevOverflow.push([node.style.overflow, node.style.maxHeight, node.style.height]); node.style.overflow='visible'; node.style.maxHeight='none'; node.style.height='auto'; });
+
+  const prevBg = el.style.background;
+  el.style.background = 'linear-gradient(160deg, #130169 0%, #0f142a 55%, #04223d 100%)';
+
+  try{
+    const canvas = await html2canvas(el, { backgroundColor: '#0f142a', scale: 2, useCORS: true });
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    showExportModal(blob, filename, 'Sua imagem está pronta. Toque no botão abaixo para abrir ou salvar.');
+  }catch(e){
+    showToast('⚠️ Não foi possível gerar a imagem.');
+  }finally{
+    el.style.background = prevBg;
+    toHide.forEach((node,i)=> node.style.display = prevDisplay[i]);
+    clampNodes.forEach((node,i)=> node.className = prevClamp[i]);
+    scrollNodes.forEach((node,i)=>{ node.style.overflow=prevOverflow[i][0]; node.style.maxHeight=prevOverflow[i][1]; node.style.height=prevOverflow[i][2]; });
+  }
+}
+
+/* ============================================================
+   NAVEGAÇÃO ENTRE MÓDULOS
+   ============================================================ */
+const moduleButtons = document.querySelectorAll('.module-tab-btn');
+const modulePanels = document.querySelectorAll('.module-panel');
+
+function goToModule(target){
+  moduleButtons.forEach(b=>{
+    const active = b.dataset.module === target;
+    b.classList.toggle('active', active);
+    b.classList.toggle('neon-border-cyan', active);
+    b.classList.toggle('border', !active);
+    b.classList.toggle('border-white/10', !active);
+    b.classList.toggle('text-slate-300', !active);
+    b.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  modulePanels.forEach(p=>{
+    p.classList.toggle('hidden', p.id !== `module-${target}`);
+  });
+  if(target === 'm5' && typeof renderModule5 === 'function') renderModule5();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+moduleButtons.forEach(btn=>{
+  btn.addEventListener('click', ()=> goToModule(btn.dataset.module));
+});
+
+document.querySelectorAll('.next-module-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=> goToModule(btn.dataset.next));
+});
+
+/* ============================================================
+   MÓDULO 1: HUB CENTRAL E MODOS DE JOGO
+   ============================================================ */
+const GAME_MODES = {
+  historia: {
+    name: 'História / Autoconhecimento',
+    icon: '📖',
+    accent: '#ec9eff',
+    tagline: 'Para momentos de reflexão e exploração de si mesmo(a).',
+    description: 'Um ritmo narrativo e contemplativo. Ideal para quando você quer entender seus padrões, revisitar sua história e escrever novos capítulos com calma, sem pressa e sem cobrança de performance.',
+    demands: { Coragem: 4, Disciplina: 5, Vulnerabilidade: 9, Foco: 6, Resiliência: 5 },
+  },
+  sobrevivencia: {
+    name: 'Sobrevivência / Crise Emocional',
+    icon: '🛟',
+    accent: '#02bbff',
+    tagline: 'Para momentos de crise emocional intensa, aqui e agora.',
+    description: 'Modo de resposta imediata. Prioriza estabilização, respiração e ferramentas de pronto-socorro emocional. Não é hora de grandes decisões — é hora de atravessar a onda com segurança.',
+    demands: { Coragem: 7, Disciplina: 4, Vulnerabilidade: 6, Foco: 8, Resiliência: 9 },
+  },
+  estrategista: {
+    name: 'Estrategista / TDAH',
+    icon: '🧩',
+    accent: '#facc15',
+    tagline: 'Para organizar tarefas, vencer a procrastinação e domar a dispersão.',
+    description: 'Modo tático e estruturado. Quebra grandes desafios em missões pequenas e recompensadoras, usando gatilhos visuais e externos para compensar a fricção executiva do dia a dia.',
+    demands: { Coragem: 5, Disciplina: 8, Vulnerabilidade: 3, Foco: 9, Resiliência: 6 },
+  },
+  hardcore: {
+    name: 'Hardcore / Exposição',
+    icon: '🔥',
+    accent: '#fb7185',
+    tagline: 'Para encarar medos de frente, com preparo e retaguarda.',
+    description: 'Modo de maior intensidade, voltado à exposição gradual a situações evitadas. Exige uma base emocional mais estável e deve ser jogado com acompanhamento terapêutico ativo.',
+    demands: { Coragem: 10, Disciplina: 7, Vulnerabilidade: 7, Foco: 7, Resiliência: 8 },
+  }
+};
+
+let currentMode = loadData('rpg_m1_currentMode', 'historia');
+let radarChart = null;
+
+function renderModeSelector(){
+  const wrap = document.getElementById('mode-selector');
+  wrap.innerHTML = '';
+  Object.entries(GAME_MODES).forEach(([key, mode])=>{
+    const selected = key === currentMode;
+    const card = document.createElement('button');
+    card.className = `mode-card text-left rounded-2xl p-4 glass-card focus-visible-ring ${selected ? 'selected neon-border-cyan' : 'border border-white/10'}`;
+    card.setAttribute('aria-pressed', selected ? 'true':'false');
+    card.innerHTML = `
+      <div class="text-3xl mb-2">${mode.icon}</div>
+      <p class="font-bebas text-lg tracking-wide leading-tight" style="color:${mode.accent}">${mode.name}</p>
+      <p class="font-cutive text-xs text-slate-400 mt-1">${mode.tagline}</p>
+    `;
+    card.addEventListener('click', ()=>{
+      currentMode = key;
+      saveData('rpg_m1_currentMode', currentMode);
+      renderModeSelector();
+      renderModeDetail();
+      renderRadarChart();
+    });
+    wrap.appendChild(card);
+  });
+}
+
+function renderModeDetail(){
+  const mode = GAME_MODES[currentMode];
+  document.getElementById('mode-detail').innerHTML = `
+    <div class="flex items-center gap-3 mb-3">
+      <span class="text-3xl">${mode.icon}</span>
+      <h3 class="font-bebas text-2xl tracking-wide" style="color:${mode.accent}">${mode.name}</h3>
+    </div>
+    <p class="font-cutive text-sm text-slate-200 leading-relaxed">${mode.description}</p>
+  `;
+  document.getElementById('radar-mode-name').textContent = mode.name;
+}
+
+function renderRadarChart(){
+  const mode = GAME_MODES[currentMode];
+  const labels = Object.keys(mode.demands);
+  const values = Object.values(mode.demands);
+  const ctx = document.getElementById('mode-radar-chart').getContext('2d');
+  if(radarChart) radarChart.destroy();
+  radarChart = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels,
+      datasets: [{
+        label: mode.name,
+        data: values,
+        backgroundColor: hexToRgba(mode.accent, 0.18),
+        borderColor: mode.accent,
+        borderWidth: 2,
+        pointBackgroundColor: mode.accent,
+        pointRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        r: {
+          angleLines: { color: 'rgba(255,255,255,0.1)' },
+          grid: { color: 'rgba(255,255,255,0.1)' },
+          pointLabels: { color: '#cbd5e1', font: { family: "'JetBrains Mono'", size: 10 } },
+          ticks: { display: false, stepSize: 2 },
+          suggestedMin: 0, suggestedMax: 10,
+        }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+function hexToRgba(hex, alpha){
+  const h = hex.replace('#','');
+  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+/* Contrato do Jogador */
+const contractTemplates = {
+  historia: (name, vow) => `Eu, ${name}, entro no Modo História para me conhecer sem pressa. Escolho olhar para minha própria trajetória com curiosidade, não com julgamento. Meu compromisso: ${vow}.`,
+  sobrevivencia: (name, vow) => `Eu, ${name}, entro no Modo Sobrevivência para atravessar este momento com segurança. Vou usar minhas ferramentas de regulação sempre que precisar, sem vergonha de pedir ajuda. Meu compromisso: ${vow}.`,
+  estrategista: (name, vow) => `Eu, ${name}, entro no Modo Estrategista para transformar caos em passos pequenos e possíveis. Vou celebrar cada missão concluída, por menor que pareça. Meu compromisso: ${vow}.`,
+  hardcore: (name, vow) => `Eu, ${name}, entro no Modo Hardcore ciente de que coragem não é ausência de medo. Vou avançar em exposição gradual, respeitando meus limites e minha rede de apoio. Meu compromisso: ${vow}.`
+};
+
+document.getElementById('generate-contract-btn').addEventListener('click', ()=>{
+  const nameInput = document.getElementById('player-name').value.trim();
+  const vowInput = document.getElementById('player-vow').value.trim();
+  const name = nameInput || 'Jogador(a)';
+  const vow = vowInput || 'seguir minha jornada com compaixão por mim mesmo(a)';
+  const mode = GAME_MODES[currentMode];
+
+  document.getElementById('contract-mode-title').textContent = `${mode.icon} Modo ${mode.name}`;
+  document.getElementById('contract-body-text').textContent = contractTemplates[currentMode](name, vow);
+  document.getElementById('contract-signature').textContent = name;
+  document.getElementById('contract-date').textContent = formatDatePT(new Date());
+
+  document.getElementById('contract-result-wrap').classList.remove('hidden');
+  saveData('rpg_m1_contract', { name, vow, mode: currentMode, date: todayISO() });
+  logActivity('📜', `Contrato do Jogador assinado — Modo ${mode.name}`);
+  document.getElementById('contract-result-wrap').scrollIntoView({behavior:'smooth', block:'center'});
+  showToast('📜 Contrato do Jogador gerado!');
+});
+
+document.getElementById('download-contract-png').addEventListener('click', ()=>{
+  exportElementAsPNG('contract-card', 'contrato-do-jogador.png');
+});
+
+/* Restaurar estado salvo do módulo 1 */
+(function initModule1(){
+  const savedContract = loadData('rpg_m1_contract', null);
+  if(savedContract){
+    document.getElementById('player-name').value = savedContract.name || '';
+    document.getElementById('player-vow').value = savedContract.vow || '';
+  }
+  renderModeSelector();
+  renderModeDetail();
+  renderRadarChart();
+})();
+
+/* ============================================================
+   MÓDULO 2: FICHA DE PERSONAGEM & ANÁLISE PSICOLÓGICA
+   ============================================================ */
+const ARCHETYPES = [
+  {
+    key:'guerreiro', name:'Guerreiro', icon:'⚔️', accent:'#b104dc', attr:'Força',
+    desc:'Enfrenta desafios de peito aberto, com força de vontade.',
+    style:'Enfrenta os desafios de peito aberto, na base da persistência. Não foge do difícil — atravessa, um passo de cada vez. Sua força não está em nunca cansar, mas em continuar mesmo cansado(a).',
+    dynamic:'Tende a se sair bem em Missões Principais de longo prazo e em Quests que pedem regularidade (Módulo #4). Fique de olho no seu HP: a disposição de "seguir em frente" pode mascarar sinais de esgotamento — o Inventário de Poções do Módulo #3 existe também para você.'
+  },
+  {
+    key:'mago', name:'Mago', icon:'🔮', accent:'#02bbff', attr:'Inteligência',
+    desc:'Resolve problemas com estratégia, análise e conhecimento.',
+    style:'Resolve problemas mapeando o tabuleiro antes de agir. Prefere entender o padrão por trás da dificuldade a reagir por impulso — pensa muito, às vezes até demais.',
+    dynamic:'Costuma se dar bem planejando Missões e quebrando objetivos grandes em passos lógicos (Módulo #4). O risco é travar em análise; experimente registrar uma Quest pequena e concluí-la sem revisar o plano dez vezes.'
+  },
+  {
+    key:'bardo', name:'Bardo', icon:'🎭', accent:'#ec9eff', attr:'Carisma',
+    desc:'Conecta pessoas, usa criatividade e carisma para atravessar tudo.',
+    style:'Atravessa o difícil criando e se conectando. Usa humor, palavras e vínculo como forma de regular o que sente — sente tudo em alto volume e transforma isso em expressão.',
+    dynamic:'Sua Mana tende a se recuperar mais rápido em interações sociais positivas — vale incluir Quests de conexão no seu Quest Board (Módulo #3). Cuidado para não gastar carisma cuidando de todo mundo e esquecer de cuidar de si.'
+  },
+  {
+    key:'guardiao', name:'Guardião', icon:'🛡️', accent:'#82e5ff', attr:'Sabedoria',
+    desc:'Protege quem ama, prioriza estabilidade e cuidado.',
+    style:'Constrói segurança ao redor de quem ama e de si mesmo(a). Prefere rotina previsível a risco desnecessário, e sente que cuidar é sua forma mais genuína de amar.',
+    dynamic:'Se destaca em manter o Check-in Diário e as Fundações sempre atualizados (Módulos #3 e #4) — a constância é sua maior aliada. Vale a pena, de vez em quando, criar uma Missão só para você, sem função de proteger ninguém.'
+  },
+  {
+    key:'curandeiro', name:'Curandeiro', icon:'🌿', accent:'#ce57df', attr:'Sabedoria',
+    desc:'Cuida de si e dos outros, sensível e empático(a).',
+    style:'Sente o clima emocional do ambiente antes de qualquer outra coisa. Cuida dos outros com naturalidade — às vezes antes de cuidar de si.',
+    dynamic:'Reconhece com facilidade os sinais de Sobrecarga do Módulo #3, inclusive nos outros. O desafio é aplicar esse mesmo cuidado a si: registre seu próprio Check-in com a mesma atenção que dedica a terceiros.'
+  },
+  {
+    key:'explorador', name:'Explorador', icon:'🧭', accent:'#e1eefc', attr:'Destreza',
+    desc:'Busca novidade, se adapta rápido, gosta de liberdade.',
+    style:'Se adapta rápido ao inesperado e busca novidade como forma de respirar. Rotina engessada cansa mais do que ajuda.',
+    dynamic:'Prefere variar as Poções de autocuidado e alternar entre Modos de Jogo (Módulo #1) conforme o momento pede. Missões muito longas e repetitivas perdem força — vale quebrá-las em versões menores e diferentes entre si.'
+  },
+];
+
+const ATTRS = ['Força','Inteligência','Destreza','Sabedoria','Carisma'];
+const ATTR_QUESTIONS = {
+  Força: 'Você consegue persistir em tarefas difíceis mesmo cansado(a), ou costuma desistir no meio do caminho?',
+  Inteligência: 'Você costuma entender o porquê das coisas antes de agir? Aprende com facilidade a partir dos próprios erros?',
+  Destreza: 'Como você reage quando um plano muda de repente? Se adapta com facilidade ou trava diante do imprevisto?',
+  Sabedoria: 'Você reconhece com clareza o que está sentindo e por quê? Confia no seu próprio julgamento na hora de decidir?',
+  Carisma: 'Você se sente à vontade se conectando com outras pessoas? Consegue se expressar quando precisa?'
+};
+
+const TRAITS = [
+  'Procrastino tarefas importantes', 'Peço ajuda quando preciso', 'Durmo em horários irregulares',
+  'Consigo nomear minhas emoções', 'Evito conflitos a qualquer custo', 'Celebro pequenas vitórias',
+  'Me comparo excessivamente aos outros', 'Mantenho pelo menos 1 vínculo social ativo', 'Ignoro sinais de cansaço até esgotar',
+  'Cuido da minha alimentação na maioria dos dias', 'Tenho dificuldade para dizer não',
+  'Pratico alguma atividade física com regularidade', 'Uso o celular/redes sociais para adiar o que preciso fazer',
+  'Falo comigo mesmo(a) com mais crítica do que gostaria', 'Consigo dar um tempo antes de reagir em um conflito',
+  'Tenho uma rotina de sono que me deixa descansado(a)', 'Guardo sentimentos para não incomodar ninguém',
+  'Reconheço quando preciso de ajuda profissional', 'Costumo terminar o que começo',
+  'Sinto que minhas conquistas nunca são suficientes', 'Tenho hobbies que fazem bem sem cobrança de performance',
+  'Evito olhar para problemas até que virem urgência', 'Consigo relaxar sem sentir culpa',
+];
+
+let attrRadarChart = null;
+let selectedArchetype = loadData('rpg_m2_archetype', 'guerreiro');
+let attrValues = loadData('rpg_m2_attrs', { Força:5, Inteligência:5, Destreza:5, Sabedoria:5, Carisma:5 });
+let traitState = loadData('rpg_m2_traits', {});
+let customTraits = loadData('rpg_m2_custom_traits', []);
+
+function renderArchetypeSelector(){
+  const wrap = document.getElementById('archetype-selector');
+  wrap.innerHTML = '';
+  ARCHETYPES.forEach(a=>{
+    const selected = a.key === selectedArchetype;
+    const btn = document.createElement('button');
+    btn.className = `text-left rounded-xl p-3 glass-card focus-visible-ring transition-all ${selected ? 'neon-border-magenta' : 'border border-white/10'}`;
+    btn.setAttribute('aria-pressed', selected ? 'true':'false');
+    btn.title = a.desc;
+    btn.innerHTML = `<div class="text-xl mb-1">${a.icon}</div><p class="font-bebas text-sm tracking-wide">${a.name}</p>`;
+    btn.addEventListener('click', ()=>{
+      selectedArchetype = a.key;
+      saveData('rpg_m2_archetype', selectedArchetype);
+      renderArchetypeSelector();
+      renderArchetypeDetail();
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+function renderArchetypeDetail(){
+  const a = ARCHETYPES.find(x=>x.key===selectedArchetype);
+  document.getElementById('archetype-detail').innerHTML = `
+    <div class="flex items-center gap-3 mb-4">
+      <span class="text-3xl">${a.icon}</span>
+      <div>
+        <h3 class="font-bebas text-2xl tracking-wide leading-none" style="color:${a.accent}">${a.name}</h3>
+        <p class="font-mono-rpg text-[10px] text-slate-400 uppercase tracking-widest mt-1">Atributo-assinatura: <span style="color:${a.accent}">${a.attr}</span></p>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      <div>
+        <p class="font-mono-rpg text-[10px] uppercase tracking-widest mb-1" style="color:${a.accent}">Estilo de Jogo</p>
+        <p class="font-cutive text-sm text-slate-200 leading-relaxed">${a.style}</p>
+      </div>
+      <div>
+        <p class="font-mono-rpg text-[10px] text-[#02bbff] uppercase tracking-widest mb-1">Dinâmica com o Sistema</p>
+        <p class="font-cutive text-sm text-slate-200 leading-relaxed">${a.dynamic}</p>
+      </div>
+    </div>
+  `;
+}
+
+function renderAttrSliders(){
+  const wrap = document.getElementById('attr-sliders');
+  wrap.innerHTML = '';
+  ATTRS.forEach(attr=>{
+    const row = document.createElement('div');
+    row.innerHTML = `
+      <div class="flex justify-between items-center mb-1">
+        <label for="attr-${attr}" class="font-mono-rpg text-[11px] text-slate-300 uppercase tracking-wider">${attr}</label>
+        <span id="attr-${attr}-val" class="font-mono-rpg text-xs text-[#02bbff]">${attrValues[attr]}</span>
+      </div>
+      <input id="attr-${attr}" type="range" min="1" max="10" value="${attrValues[attr]}" class="w-full">
+      <p class="font-cutive text-[11px] text-slate-500 mt-1 mb-2">${ATTR_QUESTIONS[attr]}</p>
+    `;
+    wrap.appendChild(row);
+    row.querySelector('input').addEventListener('input', (e)=>{
+      attrValues[attr] = parseInt(e.target.value);
+      document.getElementById(`attr-${attr}-val`).textContent = attrValues[attr];
+      updateAttrRadar();
+    });
+  });
+}
+
+function updateAttrRadar(){
+  const ctx = document.getElementById('attr-radar-chart').getContext('2d');
+  const data = ATTRS.map(a=>attrValues[a]);
+  if(attrRadarChart){
+    attrRadarChart.data.datasets[0].data = data;
+    attrRadarChart.update();
+    return;
+  }
+  attrRadarChart = new Chart(ctx, {
+    type:'radar',
+    data: {
+      labels: ATTRS,
+      datasets: [{
+        label:'Atributos',
+        data,
+        backgroundColor: 'rgba(206,87,223,0.18)',
+        borderColor: '#ce57df',
+        borderWidth: 2,
+        pointBackgroundColor: '#02bbff',
+        pointRadius: 3,
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      scales: {
+        r: {
+          angleLines:{color:'rgba(255,255,255,0.1)'},
+          grid:{color:'rgba(255,255,255,0.1)'},
+          pointLabels:{color:'#cbd5e1', font:{family:"'JetBrains Mono'", size:10}},
+          ticks:{display:false},
+          suggestedMin:0, suggestedMax:10,
+        }
+      },
+      plugins:{legend:{display:false}}
+    }
+  });
+}
+
+function renderTraitChecklist(){
+  const wrap = document.getElementById('trait-checklist');
+  wrap.innerHTML = '';
+  const allTraits = [...TRAITS, ...customTraits];
+  allTraits.forEach(trait=>{
+    const isCustom = customTraits.includes(trait);
+    const id = 'trait-' + trait.replace(/\s+/g,'-').toLowerCase();
+    const checked = !!traitState[trait];
+    const label = document.createElement('label');
+    label.className = 'flex items-start gap-2 text-sm font-cutive text-slate-300 cursor-pointer select-none';
+    label.innerHTML = `
+      <input type="checkbox" id="${id}" class="mt-1 accent-cyan-400 focus-visible-ring" ${checked ? 'checked':''}>
+      <span class="flex-1">${escapeHtml(trait)}</span>
+      ${isCustom ? '<button type="button" class="delete-trait-btn text-slate-500 hover:text-rose-400 text-xs shrink-0 focus-visible-ring" aria-label="Remover traço personalizado">✕</button>' : ''}
+    `;
+    label.querySelector('input').addEventListener('change', (e)=>{
+      traitState[trait] = e.target.checked;
+    });
+    if(isCustom){
+      label.querySelector('.delete-trait-btn').addEventListener('click', (e)=>{
+        e.preventDefault();
+        customTraits = customTraits.filter(t=>t!==trait);
+        delete traitState[trait];
+        saveData('rpg_m2_custom_traits', customTraits);
+        renderTraitChecklist();
+      });
+    }
+    wrap.appendChild(label);
+  });
+}
+
+document.getElementById('add-trait-btn').addEventListener('click', ()=>{
+  const input = document.getElementById('new-trait-input');
+  const text = input.value.trim();
+  if(!text) return;
+  if(TRAITS.includes(text) || customTraits.includes(text)){
+    showToast('⚠️ Esse traço já está na lista.');
+    return;
+  }
+  customTraits.push(text);
+  saveData('rpg_m2_custom_traits', customTraits);
+  input.value = '';
+  renderTraitChecklist();
+  showToast('✨ Traço personalizado adicionado!');
+});
+document.getElementById('new-trait-input').addEventListener('keypress', (e)=>{
+  if(e.key === 'Enter') document.getElementById('add-trait-btn').click();
+});
+
+function updateHpMpBars(){
+  const hp = document.getElementById('hp-slider').value;
+  const mp = document.getElementById('mp-slider').value;
+  document.getElementById('hp-value').textContent = `${hp}/100`;
+  document.getElementById('mp-value').textContent = `${mp}/100`;
+}
+
+document.getElementById('hp-slider').addEventListener('input', updateHpMpBars);
+document.getElementById('mp-slider').addEventListener('input', updateHpMpBars);
+
+document.getElementById('save-sheet-btn').addEventListener('click', ()=>{
+  const sheet = {
+    name: document.getElementById('char-name').value.trim(),
+    archetype: selectedArchetype,
+    hp: document.getElementById('hp-slider').value,
+    mp: document.getElementById('mp-slider').value,
+    attrs: attrValues,
+    moralOrder: document.getElementById('moral-order-slider').value,
+    moralGood: document.getElementById('moral-good-slider').value,
+    traits: traitState,
+    savedAt: todayISO(),
+  };
+  saveData('rpg_m2_sheet', sheet);
+  saveData('rpg_m2_attrs', attrValues);
+  saveData('rpg_m2_traits', traitState);
+  showToast('💾 Ficha salva com sucesso!');
+  openCharacterAnalysisModal();
+});
+
+document.getElementById('download-sheet-png').addEventListener('click', ()=>{
+  exportElementAsPNG('sheet-capture-area', 'ficha-de-personagem.png');
+});
+
+/* ============================================================
+   ANÁLISE DE PERSONAGEM — aparece após salvar a Ficha
+   ============================================================ */
+const ATTENTION_TRAITS = [
+  'Ignoro sinais de cansaço até esgotar', 'Sinto que minhas conquistas nunca são suficientes',
+  'Guardo sentimentos para não incomodar ninguém', 'Me comparo excessivamente aos outros',
+  'Evito olhar para problemas até que virem urgência', 'Falo comigo mesmo(a) com mais crítica do que gostaria',
+  'Tenho dificuldade para dizer não', 'Durmo em horários irregulares',
+];
+
+const ATTR_INSIGHTS = {
+  Força: {
+    high: 'Você tem se mostrado persistente mesmo diante do cansaço — uma base sólida para sustentar esforço ao longo do tempo.',
+    low: 'Sua energia para sustentar esforço prolongado parece mais escassa agora. Investir em Corpo na Árvore de Habilidades e escolher passos bem pequenos pode ajudar.'
+  },
+  Inteligência: {
+    high: 'Você costuma entender rápido o que está por trás dos desafios — isso ajuda a planejar melhor os próximos passos.',
+    low: 'Pode estar mais difícil organizar e planejar agora. Investir em Mente na Árvore de Habilidades pode trazer mais clareza aos poucos.'
+  },
+  Destreza: {
+    high: 'Você tem se adaptado bem a mudanças de plano — uma flexibilidade que ajuda em momentos incertos.',
+    low: 'Imprevistos parecem estar pesando mais que o usual. Investir em Ofício ou Mente na Árvore de Habilidades pode ajudar a construir mais repertório para lidar com mudanças.'
+  },
+  Sabedoria: {
+    high: 'Seu autoconhecimento está em um bom momento — você parece reconhecer com clareza o que sente.',
+    low: 'Pode estar mais difícil nomear o que você sente ou confiar no próprio julgamento agora. Isso é comum em fases de sobrecarga — vale ser gentil consigo mesmo(a) enquanto essa clareza volta.'
+  },
+  Carisma: {
+    high: 'Suas conexões sociais parecem ser um recurso forte para você agora.',
+    low: 'Conectar-se ou se expressar pode estar mais custoso no momento. Investir em Social na Árvore de Habilidades e priorizar pequenos contatos pode ajudar a reconstruir essa ponte aos poucos.'
+  },
+};
+
+const MODE_FOCUS = {
+  historia: { attrs: ['Sabedoria','Inteligência'], branches: ['mente'] },
+  sobrevivencia: { attrs: ['Força','Sabedoria'], branches: ['corpo','mente'] },
+  estrategista: { attrs: ['Inteligência','Destreza'], branches: ['oficio','mente'] },
+  hardcore: { attrs: ['Força','Destreza'], branches: ['corpo'] },
+};
+
+const MODE_MISSION_EXAMPLES = {
+  historia: [
+    { title:'Resgatar uma Memória Importante', desc:'Escrever sobre um momento marcante da sua história e o que ele te ensinou.' },
+    { title:'Mapa da Minha Trajetória', desc:'Listar 3 marcos da sua vida que moldaram quem você é hoje.' },
+  ],
+  sobrevivencia: [
+    { title:'Montar meu Kit de Pronto-Socorro Emocional', desc:'Reunir 3 estratégias de regulação que funcionam para você e deixá-las acessíveis.' },
+    { title:'Mapear Meus Gatilhos', desc:'Identificar 2 situações que costumam intensificar uma crise, e um plano simples para cada uma.' },
+  ],
+  estrategista: [
+    { title:'Domar Uma Tarefa Adiada', desc:'Escolher a tarefa mais evitada da semana e quebrá-la em 3 passos de 10 minutos.' },
+    { title:'Construir Meu Sistema de Lembretes', desc:'Montar um método simples (alarme, post-it, app) para não depender só da memória.' },
+  ],
+  hardcore: [
+    { title:'Primeiro Contato com o Medo', desc:'Escolher a versão mais leve possível da situação evitada e encará-la uma vez, com apoio.' },
+    { title:'Escada da Exposição', desc:'Listar 5 versões do desafio, da mais fácil à mais difícil, para subir aos poucos.' },
+  ],
+};
+
+const SKILL_BRANCH_NAMES = { mente:'Mente', corpo:'Corpo', social:'Social', oficio:'Ofício' };
+
+function buildCharacterAnalysis(){
+  const name = document.getElementById('char-name').value.trim() || 'Jogador(a) sem nome';
+  const archetype = ARCHETYPES.find(a=>a.key===selectedArchetype) || ARCHETYPES[0];
+  const mode = GAME_MODES[currentMode];
+  const modeFocus = MODE_FOCUS[currentMode];
+
+  const checkedTraits = [...TRAITS, ...customTraits].filter(t => traitState[t]);
+  const checkedAttentionTraits = ATTENTION_TRAITS.filter(t => traitState[t]);
+
+  const strengths = [];
+  const attentionPoints = [];
+  ATTRS.forEach(attr=>{
+    const v = attrValues[attr];
+    if(v >= 7) strengths.push(attr);
+    else if(v <= 4) attentionPoints.push(attr);
+  });
+
+  const moralOrder = parseInt(document.getElementById('moral-order-slider').value);
+  const moralGood = parseInt(document.getElementById('moral-good-slider').value);
+  let moralOrderText, moralGoodText;
+  if(moralOrder < 30) moralOrderText = 'Você tende ao improviso e à espontaneidade — isso pode trazer criatividade, mas também instabilidade se faltar alguma estrutura mínima.';
+  else if(moralOrder > 70) moralOrderText = 'Você tende a valorizar rotina e planejamento — isso traz previsibilidade, mas vale atenção para não travar diante do imprevisto.';
+  else moralOrderText = 'Você transita com equilíbrio entre estrutura e espontaneidade.';
+  if(moralGood < 30) moralGoodText = 'Você tem priorizado suas próprias necessidades — em alguns momentos isso é necessário, mas vale observar se não está se isolando.';
+  else if(moralGood > 70) moralGoodText = 'Você tem priorizado cuidar dos outros — bonito, mas vale atenção para não se esquecer de si nesse processo.';
+  else moralGoodText = 'Você parece equilibrar bem cuidar de si e cuidar dos outros.';
+
+  const relevantLowAttrs = modeFocus.attrs.filter(a => attentionPoints.includes(a));
+  const suggestedBranches = modeFocus.branches.map(b=>SKILL_BRANCH_NAMES[b]).join(' e ');
+  const missionExamples = MODE_MISSION_EXAMPLES[currentMode];
+
+  let html = '';
+
+  html += `<div class="mb-5">
+    <p class="font-mono-rpg text-[10px] text-slate-400 uppercase tracking-widest mb-1">Personagem</p>
+    <h4 class="font-bebas text-2xl text-glow-magenta leading-none">${escapeHtml(name)}</h4>
+    <p class="font-cutive text-sm text-slate-300 mt-1">${archetype.icon} ${escapeHtml(archetype.name)} · Modo ${mode.icon} ${escapeHtml(mode.name)}</p>
+  </div>`;
+
+  if(checkedTraits.length > 0){
+    html += `<div class="mb-5">
+      <p class="font-mono-rpg text-[11px] text-[#02bbff] uppercase tracking-wider mb-2">Traços Marcados</p>
+      <div class="flex flex-wrap gap-1.5">
+        ${checkedTraits.map(t=>`<span class="text-xs font-cutive bg-white/5 border border-white/10 rounded-full px-2.5 py-1 text-slate-300">${escapeHtml(t)}</span>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  html += `<div class="mb-5">
+    <p class="font-mono-rpg text-[11px] text-[#ce57df] uppercase tracking-wider mb-2">Matriz Psicológica</p>
+    <div class="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-3">
+      ${ATTRS.map(a=>`
+        <div class="bg-white/5 rounded-lg px-2 py-2 text-center">
+          <p class="font-mono-rpg text-[9px] text-slate-400 uppercase leading-tight">${a}</p>
+          <p class="font-bebas text-xl ${attrValues[a]<=4?'text-amber-300':attrValues[a]>=7?'text-emerald-300':'text-slate-200'}">${attrValues[a]}</p>
+        </div>
+      `).join('')}
+    </div>
+    ${strengths.map(a=>`<p class="font-cutive text-sm text-slate-200 mb-1.5">✨ <span class="font-semibold text-emerald-300">${a}</span>: ${ATTR_INSIGHTS[a].high}</p>`).join('')}
+    ${attentionPoints.map(a=>`<p class="font-cutive text-sm text-slate-200 mb-1.5">⚠️ <span class="font-semibold text-amber-300">${a}</span>: ${ATTR_INSIGHTS[a].low}</p>`).join('')}
+  </div>`;
+
+  html += `<div class="mb-5">
+    <p class="font-mono-rpg text-[11px] text-[#82e5ff] uppercase tracking-wider mb-2">Matriz Moral</p>
+    <p class="font-cutive text-sm text-slate-200 mb-1.5">${moralOrderText}</p>
+    <p class="font-cutive text-sm text-slate-200">${moralGoodText}</p>
+  </div>`;
+
+  if(checkedAttentionTraits.length >= 3){
+    html += `<div class="mb-5 glass-card rounded-xl p-3 border border-amber-400/30">
+      <p class="font-cutive text-sm text-amber-200">⚠️ Notei alguns padrões nos traços marcados que costumam pesar bastante, mesmo que silenciosamente. Pode valer a pena trazer isso para a próxima sessão com seu terapeuta.</p>
+    </div>`;
+  }
+
+  html += `<div class="mb-5 glass-card rounded-xl p-4 neon-border-cyan">
+    <p class="font-mono-rpg text-[11px] text-[#02bbff] uppercase tracking-wider mb-2">Sugestão para a Árvore de Habilidades</p>
+    <p class="font-cutive text-sm text-slate-200 leading-relaxed">
+      ${relevantLowAttrs.length > 0
+        ? `O Modo ${escapeHtml(mode.name)} costuma exigir bastante de ${modeFocus.attrs.join(' e ')} — e ${relevantLowAttrs.join(' e ')} está mais baixa na sua Matriz agora. Investir no ramo de <span class="text-[#82e5ff] font-semibold">${suggestedBranches}</span> na Árvore de Habilidades (Módulo #4) pode ajudar a fortalecer justamente o que esse modo mais pede de você.`
+        : `Seus atributos parecem bem alinhados com o que o Modo ${escapeHtml(mode.name)} costuma exigir. Ainda assim, o ramo de <span class="text-[#82e5ff] font-semibold">${suggestedBranches}</span> na Árvore de Habilidades tende a reforçar esse alinhamento.`}
+    </p>
+  </div>`;
+
+  html += `<div>
+    <p class="font-mono-rpg text-[11px] text-[#ec9eff] uppercase tracking-wider mb-2">Exemplos de Missão para este Modo</p>
+    <p class="font-cutive text-xs text-slate-500 mb-3">Pontos de partida — personalize à vontade antes de salvar.</p>
+    <div class="space-y-2">
+      ${missionExamples.map((ex,i)=>`
+        <div class="glass-card rounded-xl p-3 border border-white/10 flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <p class="font-semibold text-sm text-slate-200">${escapeHtml(ex.title)}</p>
+            <p class="font-cutive text-xs text-slate-400 mt-0.5">${escapeHtml(ex.desc)}</p>
+          </div>
+          <button type="button" class="use-mission-example-btn shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 transition-all focus-visible-ring" data-idx="${i}">Usar como base</button>
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
+
+  return html;
+}
+
+const characterAnalysisModal = document.getElementById('character-analysis-modal');
+
+function openCharacterAnalysisModal(){
+  document.getElementById('analysis-content').innerHTML = buildCharacterAnalysis();
+  document.querySelectorAll('.use-mission-example-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const ex = MODE_MISSION_EXAMPLES[currentMode][parseInt(btn.dataset.idx)];
+      useMissionExample(ex.title, ex.desc);
+    });
+  });
+  characterAnalysisModal.classList.add('active');
+}
+
+function useMissionExample(title, desc){
+  characterAnalysisModal.classList.remove('active');
+  goToModule('m4');
+  openMissionModal();
+  document.getElementById('mission-title').value = title;
+  document.getElementById('mission-desc').value = desc;
+}
+
+document.getElementById('close-analysis-modal').addEventListener('click', ()=> characterAnalysisModal.classList.remove('active'));
+characterAnalysisModal.addEventListener('click', (e)=>{ if(e.target === characterAnalysisModal) characterAnalysisModal.classList.remove('active'); });
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && characterAnalysisModal.classList.contains('active')) characterAnalysisModal.classList.remove('active'); });
+
+(function initModule2(){
+  const saved = loadData('rpg_m2_sheet', null);
+  renderArchetypeSelector();
+  renderArchetypeDetail();
+  renderAttrSliders();
+  updateAttrRadar();
+  renderTraitChecklist();
+  if(saved){
+    document.getElementById('char-name').value = saved.name || '';
+    document.getElementById('hp-slider').value = saved.hp ?? 70;
+    document.getElementById('mp-slider').value = saved.mp ?? 70;
+    document.getElementById('moral-order-slider').value = saved.moralOrder ?? 50;
+    document.getElementById('moral-good-slider').value = saved.moralGood ?? 50;
+  }
+  updateHpMpBars();
+})();
+
+/* ============================================================
+   MÓDULO 3: INVENTÁRIO DE RECURSOS, STAMINA E MANA
+   ============================================================ */
+const DEFAULT_POTIONS = [
+  { id:'p1', name:'🧘 Respiração guiada', cost:'5 min', stamina:1, mana:1 },
+  { id:'p2', name:'🛁 Banho quente/relaxante', cost:'15 min', stamina:2, mana:1 },
+  { id:'p3', name:'😴 Cochilo curto', cost:'20 min', stamina:3, mana:1 },
+  { id:'p4', name:'🚶 Caminhada ao ar livre', cost:'20 min', stamina:2, mana:2 },
+  { id:'p5', name:'☎️ Conversa com alguém de confiança', cost:'15 min', stamina:1, mana:3 },
+  { id:'p6', name:'📖 Leitura de lazer', cost:'20 min', stamina:1, mana:2 },
+  { id:'p7', name:'🍲 Preparar uma refeição gostosa', cost:'30 min', stamina:2, mana:2 },
+  { id:'p8', name:'🌞 Tomar sol / ar livre', cost:'10 min', stamina:1, mana:1 },
+];
+
+let resourceState = loadData('rpg_m3_resources', { time:5, stamina:5, mana:5 });
+let quests = loadData('rpg_m3_quests', []); // {id, text, staminaCost, manaCost, status}
+let potions = loadData('rpg_m3_potions', null);
+if(!potions || potions.length === 0){
+  potions = DEFAULT_POTIONS.map(p=>({...p}));
+  saveData('rpg_m3_potions', potions);
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str ?? '';
+  return div.innerHTML;
+}
+function clampResource(v){ return Math.max(0, Math.min(10, v)); }
+
+function updateResourceBars(){
+  document.getElementById('bar-time').style.width = (resourceState.time*10)+'%';
+  document.getElementById('bar-stamina').style.width = (resourceState.stamina*10)+'%';
+  document.getElementById('bar-mana').style.width = (resourceState.mana*10)+'%';
+  checkOverload();
+}
+
+function usePotion(id){
+  const p = potions.find(x=>x.id===id);
+  if(!p) return;
+  const stamGain = Number(p.stamina) || 0;
+  const manaGain = Number(p.mana) || 0;
+  resourceState.stamina = clampResource(resourceState.stamina + stamGain);
+  resourceState.mana = clampResource(resourceState.mana + manaGain);
+  saveData('rpg_m3_resources', resourceState);
+  updateResourceBars();
+  logActivity('🧪', `Poção usada: ${p.name} (+${stamGain} Stamina, +${manaGain} Mana)`);
+  showToast(`✨ ${p.name} usada — +${stamGain} Stamina, +${manaGain} Mana`);
+}
+
+function checkOverload(){
+  const alertBox = document.getElementById('overload-alert');
+  const overloaded = resourceState.stamina <= 3 || resourceState.mana <= 3;
+  alertBox.classList.toggle('hidden', !overloaded);
+  if(!overloaded) return;
+
+  const wrap = document.getElementById('potion-suggestions');
+  if(potions.length === 0){
+    wrap.innerHTML = '<p class="font-cutive text-xs text-slate-400 italic col-span-full">Cadastre poções no Inventário de Poções Restaurativas, logo abaixo, para receber sugestões aqui.</p>';
+    return;
+  }
+  const sorted = [...potions].sort((a,b)=> (Number(b.stamina)+Number(b.mana)) - (Number(a.stamina)+Number(a.mana))).slice(0,4);
+  wrap.innerHTML = sorted.map(p => `
+    <div class="glass-card rounded-xl p-3 border border-white/10 flex items-center justify-between gap-3">
+      <div class="min-w-0">
+        <p class="font-semibold text-sm text-[#ec9eff] truncate">${escapeHtml(p.name)}</p>
+        <p class="font-mono-rpg text-[10px] text-slate-400 mt-0.5">⏱ ${escapeHtml(p.cost)} · 💪+${p.stamina} 🔋+${p.mana}</p>
+      </div>
+      <button class="use-potion-btn-compact shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 transition-all focus-visible-ring" data-potion-id="${p.id}">Usar</button>
+    </div>
+  `).join('');
+  wrap.querySelectorAll('.use-potion-btn-compact').forEach(btn=>{
+    btn.addEventListener('click', ()=> usePotion(btn.dataset.potionId));
+  });
+}
+
+['time-checkin','stamina-checkin','mana-checkin'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', (e)=>{
+    document.getElementById(id+'-value').textContent = e.target.value;
+  });
+});
+
+document.getElementById('register-checkin-btn').addEventListener('click', ()=>{
+  resourceState = {
+    time: parseInt(document.getElementById('time-checkin').value),
+    stamina: parseInt(document.getElementById('stamina-checkin').value),
+    mana: parseInt(document.getElementById('mana-checkin').value),
+  };
+  saveData('rpg_m3_resources', resourceState);
+  updateResourceBars();
+  logActivity('✅', `Check-in diário registrado — ⏳${resourceState.time} 💪${resourceState.stamina} 🔋${resourceState.mana}`);
+  showToast('✅ Check-in registrado!');
+});
+
+/* Quest Board com drag-and-drop */
+function renderQuests(){
+  const pendingWrap = document.getElementById('quest-pending');
+  const doneWrap = document.getElementById('quest-done');
+  pendingWrap.innerHTML = '';
+  doneWrap.innerHTML = '';
+
+  const pending = quests.filter(q=>q.status==='pending');
+  const done = quests.filter(q=>q.status==='done');
+
+  if(pending.length===0) pendingWrap.innerHTML = '<p class="font-cutive text-xs text-slate-500 italic p-2">Nenhuma tarefa pendente.</p>';
+  if(done.length===0) doneWrap.innerHTML = '<p class="font-cutive text-xs text-slate-500 italic p-2">Nada concluído ainda.</p>';
+
+  pending.forEach(q => pendingWrap.appendChild(buildQuestCard(q)));
+  done.forEach(q => doneWrap.appendChild(buildQuestCard(q)));
+}
+
+function buildQuestCard(q){
+  const card = document.createElement('div');
+  card.className = 'quest-card glass-card rounded-lg p-3 border border-white/10 flex items-center justify-between gap-2 cursor-grab';
+  card.draggable = true;
+  card.dataset.id = q.id;
+  card.innerHTML = `
+    <span class="font-cutive text-sm ${q.status==='done' ? 'line-through text-slate-500':'text-slate-200'}">${q.text}</span>
+    <span class="font-mono-rpg text-[10px] text-slate-400 whitespace-nowrap">💪${q.staminaCost} 🔋${q.manaCost}</span>
+    <button class="delete-quest-btn text-slate-500 hover:text-rose-400 text-sm focus-visible-ring" aria-label="Remover tarefa">✕</button>
+  `;
+  card.addEventListener('dragstart', ()=> card.classList.add('dragging'));
+  card.addEventListener('dragend', ()=> card.classList.remove('dragging'));
+  card.querySelector('.delete-quest-btn').addEventListener('click', ()=>{
+    quests = quests.filter(x=>x.id!==q.id);
+    saveData('rpg_m3_quests', quests);
+    renderQuests();
+  });
+  return card;
+}
+
+[document.getElementById('quest-pending'), document.getElementById('quest-done')].forEach(zone=>{
+  zone.addEventListener('dragover', (e)=>{ e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', ()=> zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', (e)=>{
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const dragging = document.querySelector('.quest-card.dragging');
+    if(!dragging) return;
+    const id = dragging.dataset.id;
+    const newStatus = zone.id === 'quest-done' ? 'done' : 'pending';
+    const quest = quests.find(q=>q.id===id);
+    if(quest){
+      const wasDone = quest.status === 'done';
+      quest.status = newStatus;
+      // Se completou agora, consome stamina/mana
+      if(newStatus==='done' && !wasDone){
+        resourceState.stamina = Math.max(0, resourceState.stamina - quest.staminaCost);
+        resourceState.mana = Math.max(0, resourceState.mana - quest.manaCost);
+        saveData('rpg_m3_resources', resourceState);
+        updateResourceBars();
+        logActivity('⚔️', `Quest concluída: ${quest.text}`);
+      }
+      saveData('rpg_m3_quests', quests);
+      renderQuests();
+    }
+  });
+});
+
+document.getElementById('add-quest-btn').addEventListener('click', ()=>{
+  const input = document.getElementById('new-quest-input');
+  const text = input.value.trim();
+  if(!text) return;
+  quests.push({
+    id: uid(),
+    text,
+    staminaCost: parseInt(document.getElementById('new-quest-stamina').value),
+    manaCost: parseInt(document.getElementById('new-quest-mana').value),
+    status: 'pending'
+  });
+  saveData('rpg_m3_quests', quests);
+  input.value = '';
+  renderQuests();
+});
+document.getElementById('new-quest-input').addEventListener('keypress', (e)=>{
+  if(e.key === 'Enter') document.getElementById('add-quest-btn').click();
+});
+
+/* Inventário de Poções Restaurativas — totalmente editável pelo usuário */
+function renderPotionInventory(){
+  const wrap = document.getElementById('potion-inventory-grid');
+  wrap.innerHTML = '';
+  if(potions.length === 0){
+    wrap.innerHTML = '<p class="font-cutive text-xs text-slate-500 italic col-span-full">Nenhuma poção cadastrada ainda. Crie a primeira abaixo.</p>';
+    return;
+  }
+  potions.forEach(p=>{
+    const card = document.createElement('div');
+    card.className = 'glass-card rounded-xl p-4 border border-white/10';
+    card.innerHTML = `
+      <div class="flex items-start justify-between gap-2 mb-2">
+        <input type="text" class="potion-name-input font-semibold text-sm bg-transparent border-b border-transparent hover:border-white/15 focus:border-cyan-400/50 outline-none w-full focus-visible-ring" value="${escapeHtml(p.name)}" aria-label="Nome da poção">
+        <button class="delete-potion-btn text-slate-500 hover:text-rose-400 text-sm shrink-0 focus-visible-ring" aria-label="Remover poção">✕</button>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        <label class="flex items-center gap-1 text-[11px] font-mono-rpg text-slate-400">⏱<input type="text" class="potion-cost-input bg-white/5 border border-white/10 rounded px-2 py-1 w-20 text-xs focus-visible-ring outline-none" value="${escapeHtml(p.cost)}" aria-label="Custo em tempo/esforço"></label>
+        <label class="flex items-center gap-1 text-[11px] font-mono-rpg text-rose-300">💪<input type="number" min="0" max="5" class="potion-stamina-input bg-white/5 border border-white/10 rounded px-2 py-1 w-12 text-xs focus-visible-ring outline-none" value="${p.stamina}" aria-label="Pontos de Stamina restaurados"></label>
+        <label class="flex items-center gap-1 text-[11px] font-mono-rpg text-blue-300">🔋<input type="number" min="0" max="5" class="potion-mana-input bg-white/5 border border-white/10 rounded px-2 py-1 w-12 text-xs focus-visible-ring outline-none" value="${p.mana}" aria-label="Pontos de Mana restaurados"></label>
+      </div>
+      <button class="use-potion-btn w-full py-2 rounded-lg text-xs font-semibold bg-gradient-to-r from-emerald-500/70 to-cyan-500/70 hover:from-emerald-500 hover:to-cyan-500 transition-all focus-visible-ring">✨ Usar Poção</button>
+    `;
+    card.querySelector('.potion-name-input').addEventListener('change', e=>{
+      p.name = e.target.value.trim() || p.name;
+      saveData('rpg_m3_potions', potions);
+      checkOverload();
+    });
+    card.querySelector('.potion-cost-input').addEventListener('change', e=>{
+      p.cost = e.target.value.trim();
+      saveData('rpg_m3_potions', potions);
+      checkOverload();
+    });
+    card.querySelector('.potion-stamina-input').addEventListener('change', e=>{
+      p.stamina = Math.max(0, Math.min(5, parseInt(e.target.value) || 0));
+      e.target.value = p.stamina;
+      saveData('rpg_m3_potions', potions);
+      checkOverload();
+    });
+    card.querySelector('.potion-mana-input').addEventListener('change', e=>{
+      p.mana = Math.max(0, Math.min(5, parseInt(e.target.value) || 0));
+      e.target.value = p.mana;
+      saveData('rpg_m3_potions', potions);
+      checkOverload();
+    });
+    card.querySelector('.use-potion-btn').addEventListener('click', ()=> usePotion(p.id));
+    card.querySelector('.delete-potion-btn').addEventListener('click', ()=>{
+      potions = potions.filter(x=>x.id!==p.id);
+      saveData('rpg_m3_potions', potions);
+      renderPotionInventory();
+      checkOverload();
+    });
+    wrap.appendChild(card);
+  });
+}
+
+document.getElementById('add-potion-btn').addEventListener('click', ()=>{
+  const name = document.getElementById('new-potion-name').value.trim();
+  if(!name){ showToast('⚠️ Dê um nome para a poção.'); return; }
+  const cost = document.getElementById('new-potion-cost').value.trim() || '—';
+  const stamina = Math.max(0, Math.min(5, parseInt(document.getElementById('new-potion-stamina').value) || 0));
+  const mana = Math.max(0, Math.min(5, parseInt(document.getElementById('new-potion-mana').value) || 0));
+  potions.push({ id: uid(), name, cost, stamina, mana });
+  saveData('rpg_m3_potions', potions);
+  document.getElementById('new-potion-name').value = '';
+  document.getElementById('new-potion-cost').value = '';
+  document.getElementById('new-potion-stamina').value = 1;
+  document.getElementById('new-potion-mana').value = 1;
+  renderPotionInventory();
+  showToast('🧪 Poção adicionada ao inventário!');
+});
+
+(function initModule3(){
+  document.getElementById('time-checkin').value = resourceState.time;
+  document.getElementById('stamina-checkin').value = resourceState.stamina;
+  document.getElementById('mana-checkin').value = resourceState.mana;
+  document.getElementById('time-checkin-value').textContent = resourceState.time;
+  document.getElementById('stamina-checkin-value').textContent = resourceState.stamina;
+  document.getElementById('mana-checkin-value').textContent = resourceState.mana;
+  renderPotionInventory();
+  updateResourceBars();
+  renderQuests();
+})();
+
+/* ============================================================
+   MÓDULO 4: MURAL DE MISSÕES PSICOLÓGICAS
+   ============================================================ */
+let foundations = loadData('rpg_m4_foundations', { finance:'', allies:'' });
+let missions = loadData('rpg_m4_missions', []); // {id, title, desc, sideQuests:[{text,done}], requirement}
+
+function initFoundations(){
+  document.getElementById('found-finance').value = foundations.finance;
+  document.getElementById('found-allies').value = foundations.allies;
+}
+
+document.getElementById('save-foundations-btn').addEventListener('click', ()=>{
+  foundations = {
+    finance: document.getElementById('found-finance').value.trim(),
+    allies: document.getElementById('found-allies').value.trim(),
+  };
+  saveData('rpg_m4_foundations', foundations);
+  showToast('🏛️ Fundações salvas!');
+});
+
+/* ============================================================
+   ÁRVORE DE HABILIDADES
+   ============================================================ */
+const MAX_SKILL_LEVEL = 5;
+const DEFAULT_SKILL_TREE = [
+  { key:'mente', name:'Mente', icon:'🧠', accent:'#02bbff', skills:[
+    { id:'foco', name:'Foco e concentração', level:0 },
+    { id:'organizacao', name:'Organização e planejamento', level:0 },
+    { id:'aprendizado', name:'Aprendizado rápido', level:0 },
+  ]},
+  { key:'corpo', name:'Corpo', icon:'💪', accent:'#fb7185', skills:[
+    { id:'exercicio', name:'Atividade física', level:0 },
+    { id:'sono', name:'Higiene do sono', level:0 },
+    { id:'alimentacao', name:'Alimentação equilibrada', level:0 },
+  ]},
+  { key:'social', name:'Social', icon:'🤝', accent:'#ec9eff', skills:[
+    { id:'comunicacao', name:'Comunicação assertiva', level:0 },
+    { id:'escuta', name:'Escuta ativa', level:0 },
+    { id:'pedir-ajuda', name:'Pedir ajuda quando precisa', level:0 },
+  ]},
+  { key:'oficio', name:'Ofício', icon:'🛠️', accent:'#82e5ff', skills:[
+    { id:'tecnica', name:'Habilidade técnica/profissional', level:0 },
+    { id:'gestao-financeira', name:'Gestão financeira', level:0 },
+    { id:'criatividade', name:'Criatividade e resolução de problemas', level:0 },
+  ]},
+];
+
+let skillTree = loadData('rpg_m4_skilltree', null);
+if(!skillTree || skillTree.length === 0){
+  skillTree = DEFAULT_SKILL_TREE.map(b => ({ ...b, skills: b.skills.map(s=>({...s})) }));
+  saveData('rpg_m4_skilltree', skillTree);
+}
+
+function persistSkillTree(){
+  saveData('rpg_m4_skilltree', skillTree);
+}
+
+function totalSkillPoints(){
+  return skillTree.reduce((sum,b)=> sum + b.skills.reduce((s,sk)=>s+sk.level,0), 0);
+}
+
+function renderSkillBranchSelect(){
+  const sel = document.getElementById('new-skill-branch');
+  sel.innerHTML = skillTree.map(b=>`<option value="${b.key}">${b.icon} ${b.name}</option>`).join('');
+}
+
+function renderSkillTree(){
+  const wrap = document.getElementById('skilltree-branches');
+  wrap.innerHTML = '';
+  skillTree.forEach(branch=>{
+    const card = document.createElement('div');
+    card.className = 'rounded-xl border border-white/10 p-3';
+    card.innerHTML = `
+      <p class="font-mono-rpg text-[11px] uppercase tracking-wider mb-2.5" style="color:${branch.accent}">${branch.icon} ${branch.name}</p>
+      <div class="space-y-2.5" data-branch-skills="${branch.key}"></div>
+    `;
+    const skillsWrap = card.querySelector('[data-branch-skills]');
+    branch.skills.forEach(skill=>{
+      const row = document.createElement('div');
+      row.className = 'flex items-center gap-2';
+      const pips = '●'.repeat(skill.level) + '○'.repeat(MAX_SKILL_LEVEL - skill.level);
+      row.innerHTML = `
+        <div class="flex-1 min-w-0">
+          <p class="font-cutive text-sm text-slate-200 truncate">${escapeHtml(skill.name)}</p>
+          <p class="text-xs tracking-widest leading-none mt-1" style="color:${branch.accent}">${pips}</p>
+        </div>
+        <button type="button" class="skill-down-btn w-7 h-7 rounded-md glass-card border border-white/15 text-sm hover:bg-white/10 focus-visible-ring shrink-0" aria-label="Diminuir nível de ${escapeHtml(skill.name)}" ${skill.level<=0?'disabled':''}>−</button>
+        <span class="font-mono-rpg text-[10px] text-slate-400 w-8 text-center shrink-0">${skill.level}/${MAX_SKILL_LEVEL}</span>
+        <button type="button" class="skill-up-btn w-7 h-7 rounded-md glass-card border border-white/15 text-sm hover:bg-white/10 focus-visible-ring shrink-0" aria-label="Aumentar nível de ${escapeHtml(skill.name)}" ${skill.level>=MAX_SKILL_LEVEL?'disabled':''}>+</button>
+        ${skill.custom ? '<button type="button" class="delete-skill-btn text-slate-500 hover:text-rose-400 text-xs shrink-0 focus-visible-ring" aria-label="Remover habilidade personalizada">✕</button>' : ''}
+      `;
+      row.querySelector('.skill-up-btn').addEventListener('click', ()=>{
+        if(skill.level < MAX_SKILL_LEVEL){
+          skill.level++;
+          persistSkillTree();
+          renderSkillTree();
+          logActivity('🌳', `Habilidade evoluída: ${skill.name} → nível ${skill.level}`);
+        }
+      });
+      row.querySelector('.skill-down-btn').addEventListener('click', ()=>{
+        if(skill.level > 0){ skill.level--; persistSkillTree(); renderSkillTree(); }
+      });
+      if(skill.custom){
+        row.querySelector('.delete-skill-btn').addEventListener('click', ()=>{
+          branch.skills = branch.skills.filter(s=>s.id!==skill.id);
+          persistSkillTree();
+          renderSkillTree();
+        });
+      }
+      skillsWrap.appendChild(row);
+    });
+    wrap.appendChild(card);
+  });
+  document.getElementById('skilltree-total-points').textContent = totalSkillPoints();
+}
+
+document.getElementById('add-skill-btn').addEventListener('click', ()=>{
+  const branchKey = document.getElementById('new-skill-branch').value;
+  const name = document.getElementById('new-skill-name').value.trim();
+  if(!name) return;
+  const branch = skillTree.find(b=>b.key===branchKey);
+  if(!branch) return;
+  branch.skills.push({ id: uid(), name, level: 0, custom: true });
+  persistSkillTree();
+  document.getElementById('new-skill-name').value = '';
+  renderSkillTree();
+  showToast('🌳 Habilidade adicionada à árvore!');
+});
+document.getElementById('new-skill-name').addEventListener('keypress', (e)=>{
+  if(e.key === 'Enter') document.getElementById('add-skill-btn').click();
+});
+
+const REQUIREMENT_LABELS = { finance:'💰 Finanças', skills:'🛠️ Habilidades', allies:'🤝 Aliados' };
+
+/* Voz Terapêutica: cruza requisito da missão com recursos atuais */
+function generateVozTerapeutica(requirement, missionTitle){
+  const label = REQUIREMENT_LABELS[requirement];
+
+  if(requirement === 'skills'){
+    const points = totalSkillPoints();
+    if(points === 0){
+      return `Percebo que esta missão depende principalmente de ${label}, mas sua Árvore de Habilidades ainda está no nível zero. Que tal escolher uma habilidade para começar a evoluir? Isso vai deixar o caminho até "${missionTitle}" mais claro.`;
+    }
+    const topSkill = skillTree.flatMap(b=>b.skills).sort((a,b)=>b.level-a.level)[0];
+    const skillTemplates = [
+      `Sua habilidade mais desenvolvida agora é "${topSkill.name}" (nível ${topSkill.level}). Ela pode ser sua maior aliada para avançar em "${missionTitle}".`,
+      `Você já acumulou ${points} pontos na sua Árvore de Habilidades. Considere usar esse progresso como base para o primeiro passo secundário de "${missionTitle}".`,
+      `"${missionTitle}" e sua Árvore de Habilidades parecem conectadas. Ir com passos pequenos e mensuráveis tende a preservar sua energia (Stamina/Mana) enquanto avança.`,
+    ];
+    return skillTemplates[Math.floor(Math.random()*skillTemplates.length)];
+  }
+
+  const resourceText = foundations[requirement]?.trim();
+  if(!resourceText){
+    return `Percebo que esta missão depende principalmente de ${label}, mas você ainda não registrou seus recursos nessa área nas Fundações. Que tal preencher esse campo primeiro? Isso vai deixar o caminho até "${missionTitle}" mais claro e realista.`;
+  }
+  const templates = [
+    `Olhando suas Fundações em ${label}, você já tem uma base para começar "${missionTitle}". Considere dar o primeiro passo secundário ainda esta semana, sem precisar resolver tudo de uma vez.`,
+    `Esta missão exige bastante de ${label}. Como você registrou "${resourceText.slice(0,60)}${resourceText.length>60?'...':''}", talvez valha revisitar esse recurso antes de avançar — ele pode ser sua maior aliada aqui.`,
+    `"${missionTitle}" e seus recursos de ${label} parecem conectados. Ir com passos pequenos e mensuráveis tende a preservar sua energia (Stamina/Mana) enquanto avança.`,
+  ];
+  return templates[Math.floor(Math.random()*templates.length)];
+}
+
+function renderMissions(){
+  const wrap = document.getElementById('main-missions-list');
+  wrap.innerHTML = '';
+  if(missions.length === 0){
+    wrap.innerHTML = '<p class="font-cutive text-sm text-slate-500 italic col-span-full">Nenhuma missão principal ainda. Crie a primeira!</p>';
+    return;
+  }
+  missions.forEach(m=>{
+    const doneCount = m.sideQuests.filter(sq=>sq.done).length;
+    const total = m.sideQuests.length || 1;
+    const pct = Math.round((doneCount/total)*100);
+    const requiredResources = m.requiredResources || [];
+    const card = document.createElement('div');
+    card.className = 'glass-card rounded-xl p-4 border border-white/10';
+    card.innerHTML = `
+      <div class="flex items-start justify-between gap-2 mb-2">
+        <h4 class="font-bebas text-lg tracking-wide text-[#82e5ff]">${escapeHtml(m.title)}</h4>
+        <button class="delete-mission-btn text-slate-500 hover:text-rose-400 text-sm focus-visible-ring" aria-label="Remover missão">✕</button>
+      </div>
+      <p class="font-cutive text-xs text-slate-400 mb-2">${escapeHtml(m.desc || '')}</p>
+      <p class="font-mono-rpg text-[10px] text-[#ce57df] uppercase tracking-wider mb-2">Exige: ${REQUIREMENT_LABELS[m.requirement]}</p>
+      <div class="stat-bar-track mb-3"><div class="stat-bar-fill bg-gradient-to-r from-[#ce57df] to-[#02bbff]" style="width:${pct}%"></div></div>
+      <div class="space-y-1">
+        ${m.sideQuests.map((sq,i)=>`
+          <label class="flex items-center gap-2 text-xs font-cutive text-slate-300 cursor-pointer">
+            <input type="checkbox" data-mission="${m.id}" data-idx="${i}" class="sidequest-check accent-cyan-400 focus-visible-ring" ${sq.done?'checked':''}>
+            <span class="${sq.done?'line-through text-slate-500':''}">${escapeHtml(sq.text)}</span>
+          </label>
+        `).join('')}
+      </div>
+      ${requiredResources.length > 0 ? `
+        <div class="mt-3 pt-3 border-t border-white/10">
+          <p class="font-mono-rpg text-[10px] text-slate-400 uppercase tracking-wider mb-1.5">🎒 Recursos Necessários</p>
+          <div class="space-y-1">
+            ${requiredResources.map((r,i)=>`
+              <label class="flex items-center gap-2 text-xs font-cutive cursor-pointer">
+                <input type="checkbox" data-mission="${m.id}" data-ridx="${i}" class="resource-check accent-emerald-400 focus-visible-ring" ${r.have?'checked':''}>
+                <span class="${r.have ? 'text-emerald-300' : 'text-amber-300'}">${r.have ? '✓' : '⚠'} ${escapeHtml(r.text)}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+      ${(m.firstStep || m.gettingCloser) ? `
+        <div class="mt-3 pt-3 border-t border-white/10 space-y-1.5">
+          <p class="font-mono-rpg text-[10px] text-[#82e5ff] uppercase tracking-wider">👣 Primeiros Passos</p>
+          ${m.firstStep ? `<p class="font-cutive text-xs text-slate-300"><span class="text-slate-500">Hoje:</span> ${escapeHtml(m.firstStep)}</p>` : ''}
+          ${m.gettingCloser ? `<p class="font-cutive text-xs text-slate-300"><span class="text-slate-500">Aproximação:</span> ${escapeHtml(m.gettingCloser)}</p>` : ''}
+        </div>
+      ` : ''}
+    `;
+    card.querySelector('.delete-mission-btn').addEventListener('click', ()=>{
+      missions = missions.filter(x=>x.id!==m.id);
+      saveData('rpg_m4_missions', missions);
+      renderMissions();
+    });
+    card.querySelectorAll('.sidequest-check').forEach(cb=>{
+      cb.addEventListener('change', (e)=>{
+        const idx = parseInt(e.target.dataset.idx);
+        const mission = missions.find(x=>x.id===m.id);
+        mission.sideQuests[idx].done = e.target.checked;
+        const allDone = mission.sideQuests.length > 0 && mission.sideQuests.every(sq=>sq.done);
+        if(allDone && !mission.completedAt){
+          mission.completedAt = Date.now();
+          logActivity('🏆', `Missão concluída: ${mission.title}`);
+        } else if(!allDone && mission.completedAt){
+          mission.completedAt = null;
+        }
+        saveData('rpg_m4_missions', missions);
+        if(e.target.checked){
+          logActivity('🗸', `Passo concluído: ${mission.sideQuests[idx].text} (missão: ${mission.title})`);
+        }
+        renderMissions();
+      });
+    });
+    card.querySelectorAll('.resource-check').forEach(cb=>{
+      cb.addEventListener('change', (e)=>{
+        const idx = parseInt(e.target.dataset.ridx);
+        const mission = missions.find(x=>x.id===m.id);
+        mission.requiredResources[idx].have = e.target.checked;
+        saveData('rpg_m4_missions', missions);
+        renderMissions();
+      });
+    });
+    wrap.appendChild(card);
+  });
+}
+
+/* Modal de construção de missão */
+const ENCOURAGEMENT_PHRASES = [
+  'Cada grande jornada começa com um passo pequeno. Você já está andando.',
+  'Não precisa ser perfeito hoje — só um pouco mais perto de ontem.',
+  'Sua missão não desaparece se você for devagar. Ela espera por você.',
+  'Todo herói hesita antes do primeiro passo. Isso não te torna menos capaz.',
+  'Progresso não é uma linha reta — tudo bem se hoje for só um tijolo na parede.',
+  'Você já chegou até aqui. Isso já conta como avanço.',
+  'O primeiro passo não precisa ser grande. Só precisa existir.',
+  'Confie no seu ritmo — ele é seu, e é válido.',
+  'Mesmo um passo pequeno hoje muda a distância até amanhã.',
+  'Você não precisa vencer a missão inteira agora. Só o próximo passo.',
+];
+
+const missionModal = document.getElementById('mission-modal');
+function openMissionModal(){
+  missionModal.classList.add('active');
+  document.getElementById('mission-title').value = '';
+  document.getElementById('mission-desc').value = '';
+  document.getElementById('mission-requirement').value = 'finance';
+  document.getElementById('side-quests-inputs').innerHTML = '<input type="text" placeholder="Passo 1..." class="side-quest-input w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm focus-visible-ring focus:border-cyan-400/60 outline-none placeholder:text-slate-500">';
+  document.getElementById('required-resources-inputs').innerHTML = `
+    <div class="required-resource-row flex items-center gap-2">
+      <input type="text" placeholder="Ex: tênis de corrida, R$50 guardado..." class="required-resource-input flex-1 min-w-0 bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm focus-visible-ring focus:border-cyan-400/60 outline-none placeholder:text-slate-500">
+      <label class="flex items-center gap-1 text-[11px] font-mono-rpg text-emerald-300 whitespace-nowrap shrink-0">
+        <input type="checkbox" class="required-resource-have accent-emerald-400 focus-visible-ring"> Já tenho
+      </label>
+    </div>
+  `;
+  document.getElementById('mission-first-step').value = '';
+  document.getElementById('mission-getting-closer').value = '';
+  document.getElementById('mission-encouragement-phrase').textContent = ENCOURAGEMENT_PHRASES[Math.floor(Math.random()*ENCOURAGEMENT_PHRASES.length)];
+  document.getElementById('voz-terapeutica-box').classList.add('hidden');
+  document.getElementById('mission-title').focus();
+}
+function closeMissionModal(){ missionModal.classList.remove('active'); }
+
+document.getElementById('open-mission-modal-btn').addEventListener('click', openMissionModal);
+document.getElementById('close-mission-modal').addEventListener('click', closeMissionModal);
+missionModal.addEventListener('click', (e)=>{ if(e.target === missionModal) closeMissionModal(); });
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && missionModal.classList.contains('active')) closeMissionModal(); });
+
+document.getElementById('add-sidequest-input-btn').addEventListener('click', ()=>{
+  const wrap = document.getElementById('side-quests-inputs');
+  const n = wrap.children.length + 1;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = `Passo ${n}...`;
+  input.className = 'side-quest-input w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm focus-visible-ring focus:border-cyan-400/60 outline-none placeholder:text-slate-500';
+  wrap.appendChild(input);
+});
+
+document.getElementById('add-resource-input-btn').addEventListener('click', ()=>{
+  const wrap = document.getElementById('required-resources-inputs');
+  const row = document.createElement('div');
+  row.className = 'required-resource-row flex items-center gap-2';
+  row.innerHTML = `
+    <input type="text" placeholder="Outro recurso..." class="required-resource-input flex-1 min-w-0 bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm focus-visible-ring focus:border-cyan-400/60 outline-none placeholder:text-slate-500">
+    <label class="flex items-center gap-1 text-[11px] font-mono-rpg text-emerald-300 whitespace-nowrap shrink-0">
+      <input type="checkbox" class="required-resource-have accent-emerald-400 focus-visible-ring"> Já tenho
+    </label>
+  `;
+  wrap.appendChild(row);
+});
+
+document.getElementById('preview-voz-btn').addEventListener('click', ()=>{
+  const title = document.getElementById('mission-title').value.trim() || 'sua missão';
+  const requirement = document.getElementById('mission-requirement').value;
+  const text = generateVozTerapeutica(requirement, title);
+  document.getElementById('voz-terapeutica-text').textContent = text;
+  document.getElementById('voz-terapeutica-box').classList.remove('hidden');
+});
+
+document.getElementById('save-mission-btn').addEventListener('click', ()=>{
+  const title = document.getElementById('mission-title').value.trim();
+  if(!title){ showToast('⚠️ Dê um título para a missão.'); return; }
+  const desc = document.getElementById('mission-desc').value.trim();
+  const requirement = document.getElementById('mission-requirement').value;
+  const sideQuests = Array.from(document.querySelectorAll('.side-quest-input'))
+    .map(inp=>inp.value.trim()).filter(Boolean)
+    .map(text=>({ text, done:false }));
+  const requiredResources = Array.from(document.querySelectorAll('.required-resource-row'))
+    .map(row => ({
+      text: row.querySelector('.required-resource-input').value.trim(),
+      have: row.querySelector('.required-resource-have').checked,
+    }))
+    .filter(r => r.text);
+  const firstStep = document.getElementById('mission-first-step').value.trim();
+  const gettingCloser = document.getElementById('mission-getting-closer').value.trim();
+
+  missions.push({ id: uid(), title, desc, requirement, sideQuests, requiredResources, firstStep, gettingCloser, createdAt: Date.now(), completedAt: null });
+  saveData('rpg_m4_missions', missions);
+  logActivity('✨', `Nova missão criada: ${title}`);
+  renderMissions();
+  closeMissionModal();
+  showToast('✨ Missão adicionada ao mural!');
+});
+
+(function initModule4(){
+  initFoundations();
+  renderSkillBranchSelect();
+  renderSkillTree();
+  renderMissions();
+})();
+
+/* ============================================================
+   MÓDULO 5: MAPA DA JORNADA (VISÃO GERAL E PROGRESSO)
+   ============================================================ */
+
+function renderCharacterRecap(){
+  const name = document.getElementById('char-name').value.trim() || 'Jogador(a) sem nome';
+  const archetype = ARCHETYPES.find(a=>a.key===selectedArchetype) || ARCHETYPES[0];
+  const mode = GAME_MODES[currentMode];
+  const hp = document.getElementById('hp-slider').value;
+  const mp = document.getElementById('mp-slider').value;
+
+  document.getElementById('journey-character-recap').innerHTML = `
+    <div class="flex flex-wrap items-center gap-4">
+      <div class="text-4xl shrink-0">${archetype.icon}</div>
+      <div class="flex-1 min-w-[180px]">
+        <h3 class="font-bebas text-2xl tracking-wide text-glow-magenta leading-none">${escapeHtml(name)}</h3>
+        <p class="font-mono-rpg text-[11px] text-slate-400 uppercase tracking-wider mt-1.5">${archetype.name} · Modo ${mode.icon} ${mode.name}</p>
+      </div>
+      <div class="flex gap-5">
+        <div class="text-center">
+          <p class="font-mono-rpg text-[10px] text-rose-300 uppercase tracking-wider">HP</p>
+          <p class="font-bebas text-2xl leading-none mt-0.5">${hp}<span class="text-xs text-slate-500">/100</span></p>
+        </div>
+        <div class="text-center">
+          <p class="font-mono-rpg text-[10px] text-blue-300 uppercase tracking-wider">MP</p>
+          <p class="font-bebas text-2xl leading-none mt-0.5">${mp}<span class="text-xs text-slate-500">/100</span></p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderJourneyMap(){
+  const svgWrap = document.getElementById('journey-map-svg-wrap');
+  const legendWrap = document.getElementById('journey-map-legend');
+
+  if(missions.length === 0){
+    svgWrap.innerHTML = '';
+    legendWrap.innerHTML = '<p class="font-cutive text-sm text-slate-500 italic">Sua jornada no mapa ainda não começou — crie sua primeira Missão Principal no Mural de Missões (Módulo #4).</p>';
+    return;
+  }
+
+  const cols = Math.min(4, missions.length);
+  const rows = Math.ceil(missions.length / cols);
+  const colSpacing = 160, rowSpacing = 130, marginX = 60, marginY = 60;
+  const width = marginX*2 + (cols-1)*colSpacing;
+  const height = marginY*2 + (rows-1)*rowSpacing;
+
+  const points = missions.map((m, i)=>{
+    const row = Math.floor(i/cols);
+    const colInRow = i % cols;
+    const reversedRow = row % 2 === 1;
+    const col = reversedRow ? (cols-1-colInRow) : colInRow;
+    const total = m.sideQuests.length;
+    const done = m.sideQuests.filter(sq=>sq.done).length;
+    const pct = total > 0 ? done/total : 0;
+    return { x: marginX + col*colSpacing, y: marginY + row*rowSpacing, m, pct, done, total };
+  });
+
+  const currentIdx = points.findIndex(p => p.pct < 1);
+  const R = 26;
+  const circumference = 2*Math.PI*R;
+  const pathD = points.map((p,i)=> (i===0?'M':'L') + ` ${p.x},${p.y}`).join(' ');
+
+  const nodesSvg = points.map((p,i)=>{
+    const dash = circumference * p.pct;
+    const ringColor = p.pct >= 1 ? '#02bbff' : (p.pct > 0 ? '#ce57df' : 'rgba(225,238,252,0.25)');
+    const fillColor = p.pct >= 1 ? 'url(#nodeGradientDone)' : 'rgba(15,20,42,0.9)';
+    const isCurrent = i === currentIdx;
+    return `
+      <g>
+        ${isCurrent ? `<circle cx="${p.x}" cy="${p.y}" r="${R+9}" fill="none" stroke="#82e5ff" stroke-width="2" stroke-dasharray="4 5" opacity="0.9"/>` : ''}
+        <circle cx="${p.x}" cy="${p.y}" r="${R}" fill="${fillColor}" stroke="rgba(225,238,252,0.15)" stroke-width="2"/>
+        <circle cx="${p.x}" cy="${p.y}" r="${R}" fill="none" stroke="${ringColor}" stroke-width="4" stroke-dasharray="${dash} ${circumference-dash}" stroke-linecap="round" transform="rotate(-90 ${p.x} ${p.y})"/>
+        <text x="${p.x}" y="${p.y+6}" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="16" fill="#e1eefc" font-weight="600">${p.pct>=1 ? '✓' : (i+1)}</text>
+        ${isCurrent ? `<text x="${p.x}" y="${p.y-R-14}" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="10" fill="#82e5ff" letter-spacing="1">VOCÊ ESTÁ AQUI</text>` : ''}
+        <title>${escapeHtml(p.m.title)} — ${p.done}/${p.total} passos concluídos</title>
+      </g>
+    `;
+  }).join('');
+
+  svgWrap.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}" style="min-width:${Math.max(width,320)}px" class="w-full" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mapa da jornada com o progresso de cada missão principal">
+      <defs>
+        <linearGradient id="nodeGradientDone" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#02bbff"/>
+          <stop offset="100%" stop-color="#ce57df"/>
+        </linearGradient>
+      </defs>
+      <path d="${pathD}" fill="none" stroke="rgba(130,229,255,0.3)" stroke-width="2" stroke-dasharray="6 8"/>
+      ${nodesSvg}
+    </svg>
+  `;
+
+  legendWrap.innerHTML = points.map((p,i)=>`
+    <div class="flex items-center gap-2 text-xs font-cutive">
+      <span class="font-mono-rpg text-[10px] w-4 shrink-0 ${p.pct>=1 ? 'text-[#02bbff]' : 'text-slate-500'}">${p.pct>=1?'✓':(i+1)+'.'}</span>
+      <span class="${p.pct>=1 ? 'text-slate-400 line-through' : 'text-slate-200'} truncate">${escapeHtml(p.m.title)}</span>
+      <span class="font-mono-rpg text-[10px] text-slate-500 ml-auto shrink-0">${p.done}/${p.total}</span>
+    </div>
+  `).join('');
+}
+
+function renderMissionTimeline(){
+  const wrap = document.getElementById('mission-timeline-track');
+  if(missions.length === 0){
+    wrap.innerHTML = '<p class="font-cutive text-sm text-slate-500 italic">Sua linha do tempo aparece aqui assim que você criar sua primeira missão.</p>';
+    return;
+  }
+  const sorted = [...missions].sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+  const dateFmt = new Intl.DateTimeFormat('pt-BR', {day:'2-digit', month:'short'});
+  wrap.innerHTML = sorted.map((m,i)=>{
+    const completed = !!m.completedAt;
+    const dateLabel = m.createdAt ? dateFmt.format(new Date(m.createdAt)) : '—';
+    const isFirst = i===0, isLast = i===sorted.length-1;
+    return `
+      <div class="flex flex-col items-center shrink-0 w-32 px-1">
+        <div class="w-full flex items-center">
+          <div class="flex-1 h-px ${isFirst?'bg-transparent':'bg-white/15'}"></div>
+          <div class="w-3 h-3 rounded-full shrink-0 ${completed ? 'bg-[#02bbff]' : 'bg-transparent border-2 border-white/30'}"></div>
+          <div class="flex-1 h-px ${isLast?'bg-transparent':'bg-white/15'}"></div>
+        </div>
+        <p class="font-mono-rpg text-[9px] text-slate-500 mt-1">${dateLabel}</p>
+        <p class="font-cutive text-xs text-slate-200 text-center mt-0.5 leading-snug">${escapeHtml(m.title)}</p>
+        <p class="font-mono-rpg text-[9px] ${completed?'text-emerald-300':'text-amber-300'} mt-0.5">${completed?'concluída':'em andamento'}</p>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderProgressStats(){
+  const questsTotal = quests.length;
+  const questsDone = quests.filter(q=>q.status==='done').length;
+  const missionsTotal = missions.length;
+  const missionsDone = missions.filter(m => m.sideQuests.length>0 && m.sideQuests.every(sq=>sq.done)).length;
+
+  const stats = [
+    { label:'Quests Concluídas', value:`${questsDone}/${questsTotal}`, color:'#02bbff' },
+    { label:'Missões Concluídas', value:`${missionsDone}/${missionsTotal}`, color:'#ce57df' },
+    { label:'Poções no Inventário', value:`${potions.length}`, color:'#82e5ff' },
+    { label:'Stamina Atual', value:`${resourceState.stamina}/10`, color:'#fb7185' },
+  ];
+  document.getElementById('journey-progress-stats').innerHTML = stats.map(s=>`
+    <div class="glass-card rounded-xl p-4 text-center border border-white/10">
+      <p class="font-bebas text-3xl" style="color:${s.color}">${s.value}</p>
+      <p class="font-mono-rpg text-[10px] text-slate-400 uppercase tracking-wider mt-1">${s.label}</p>
+    </div>
+  `).join('');
+}
+
+function renderTimeline(){
+  const log = loadData('rpg_activity_log', []);
+  const wrap = document.getElementById('journey-timeline');
+  if(log.length === 0){
+    wrap.innerHTML = '<p class="font-cutive text-sm text-slate-500 italic">Nenhuma atividade registrada ainda. Suas ações no Hub, na Ficha, no Quest Board e no Mural vão aparecer aqui.</p>';
+    return;
+  }
+  wrap.innerHTML = log.map(entry => `
+    <div class="flex items-start gap-3 text-sm">
+      <span class="text-lg leading-none shrink-0">${entry.icon}</span>
+      <div class="min-w-0">
+        <p class="font-cutive text-slate-200">${escapeHtml(entry.text)}</p>
+        <p class="font-mono-rpg text-[10px] text-slate-500 mt-0.5">${formatDateTimePT(new Date(entry.ts))}</p>
+      </div>
+    </div>
+  `).join('');
+}
+
+function generateJourneyTips(){
+  const tips = [];
+
+  if(resourceState.stamina <= 3 || resourceState.mana <= 3){
+    tips.push({ icon:'🧪', text:'Seus recursos estão baixos agora. Vale visitar o Inventário de Poções Restaurativas (Módulo #3) antes de assumir novas quests.' });
+  }
+
+  const foundationLabels = { finance:'Finanças', allies:'Aliados' };
+  const emptyFoundations = Object.keys(foundationLabels).filter(k => !foundations[k] || !foundations[k].trim());
+  if(emptyFoundations.length > 0){
+    tips.push({ icon:'🏛️', text:`Suas Fundações de ${emptyFoundations.map(k=>foundationLabels[k]).join(' e ')} ainda estão em branco no Mural de Missões — preenchê-las ajuda a Voz Terapêutica a dar sugestões mais precisas.` });
+  }
+
+  if(typeof totalSkillPoints === 'function' && totalSkillPoints() === 0){
+    tips.push({ icon:'🌳', text:'Sua Árvore de Habilidades ainda está no nível zero. Escolha uma habilidade para começar a evoluir no Mural de Missões (Módulo #4).' });
+  }
+
+  if(missions.length === 0){
+    tips.push({ icon:'✨', text:'Você ainda não criou nenhuma Missão Principal. Que tal escolher um objetivo maior para começar a traçar seu mapa?' });
+  } else if(missions.every(m => m.sideQuests.length>0 && m.sideQuests.every(sq=>sq.done))){
+    tips.push({ icon:'🏆', text:'Todas as suas missões atuais estão concluídas! Bom momento para celebrar o percurso e, quando quiser, traçar um novo objetivo.' });
+  }
+
+  const pendingQuests = quests.filter(q=>q.status==='pending').length;
+  if(pendingQuests >= 5){
+    tips.push({ icon:'📋', text:`Você tem ${pendingQuests} quests pendentes no Quest Board. Se estiver pesado, escolha só 1 ou 2 para hoje — o resto pode esperar.` });
+  }
+
+  if(attrValues && Object.keys(attrValues).length > 0){
+    const entries = Object.entries(attrValues);
+    const maxAttr = entries.reduce((a,b)=> b[1]>a[1]?b:a);
+    const minAttr = entries.reduce((a,b)=> b[1]<a[1]?b:a);
+    if(maxAttr[1] - minAttr[1] >= 4){
+      tips.push({ icon:'🧭', text:`Na sua Ficha de Personagem, ${maxAttr[0]} está bem mais alta que ${minAttr[0]}. Não é bom nem ruim — só um retrato de agora que pode valer levar para a sessão.` });
+    }
+  }
+
+  tips.push({ icon:'💬', text:'Cada passo, por menor que seja, conta para o seu mapa. Continue no seu ritmo.' });
+
+  return tips.slice(0, 5);
+}
+
+function renderTips(){
+  document.getElementById('journey-tips').innerHTML = generateJourneyTips().map(t=>`
+    <div class="flex items-start gap-3">
+      <span class="text-lg leading-none shrink-0">${t.icon}</span>
+      <p class="font-cutive text-sm text-slate-200 leading-relaxed">${t.text}</p>
+    </div>
+  `).join('');
+}
+
+function renderModule5(){
+  renderCharacterRecap();
+  renderJourneyMap();
+  renderMissionTimeline();
+  renderProgressStats();
+  renderTimeline();
+  renderTips();
+}
+
+document.getElementById('save-journey-pdf-btn').addEventListener('click', ()=>{
+  exportJourneyReportPDF();
+});
+
+const resetModal = document.getElementById('reset-modal');
+document.getElementById('open-reset-modal-btn').addEventListener('click', ()=> resetModal.classList.add('active'));
+document.getElementById('cancel-reset-btn').addEventListener('click', ()=> resetModal.classList.remove('active'));
+resetModal.addEventListener('click', (e)=>{ if(e.target === resetModal) resetModal.classList.remove('active'); });
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && resetModal.classList.contains('active')) resetModal.classList.remove('active'); });
+
+document.getElementById('confirm-reset-btn').addEventListener('click', ()=>{
+  [
+    'rpg_m1_currentMode','rpg_m1_contract',
+    'rpg_m2_sheet','rpg_m2_archetype','rpg_m2_attrs','rpg_m2_traits',
+    'rpg_m3_resources','rpg_m3_quests','rpg_m3_potions',
+    'rpg_m4_foundations','rpg_m4_missions',
+    'rpg_activity_log'
+  ].forEach(k => localStorage.removeItem(k));
+  location.reload();
+});
+</script>
+
+</body>
+</html>
